@@ -126,7 +126,7 @@
             const connectWallet = () => {
                 if (window.ethereum) {
                     window.ethereum.enable().then((res) => {
-                        form.fromAddress = res[0];
+                        form.fromAddress = form.toAddress = res[0];
                         form.isConnectWallet = true;
                         alert("当前钱包地址:" + res[0]);
                     });
@@ -197,22 +197,31 @@
                 // success
                 if (res.code === 0) {
                     let txHash = '';
-                    if (fromChainId === 3 || fromChainId === 33) {
-                        txHash = await handleZk(res, fromChainId, fromAddress);
-                    } else if (fromChainId === 4 || fromChainId === 44) {
-                        txHash = await handleStarknet(res);
-                    } else if (fromChainId === 8 || fromChainId === 88) {
-                        txHash = await handleImx(res, fromAddress);
-                    } else if (fromChainId === 9 || fromChainId === 99) {
-                        txHash = await handleLoopring(res, fromAddress);
-                    } else if (fromChainId === 11 || fromChainId === 511) {
-                        txHash = await handleDydx(res);
-                    } else if (fromChainId === 12 || fromChainId === 512) {
-                        txHash = await handleZkspace(fromAddress, fromChainId, res);
-                    } else if (fromChainId === 14 || fromChainId === 514) {
-                        txHash = await handleZksync(res);
-                    } else {
-                        txHash = await handleEvm(res, privateKeys);
+                    try {
+                        if (fromChainId === 3 || fromChainId === 33) {
+                            txHash = await handleZk(res, fromChainId, fromAddress);
+                        } else if (fromChainId === 4 || fromChainId === 44) {
+                            txHash = await handleStarknet(res);
+                        } else if (fromChainId === 8 || fromChainId === 88) {
+                            txHash = await handleImx(res, fromAddress);
+                        } else if (fromChainId === 9 || fromChainId === 99) {
+                            txHash = await handleLoopring(res, fromAddress);
+                        } else if (fromChainId === 11 || fromChainId === 511) {
+                            txHash = await handleDydx(res, fromChainId);
+                        } else if (fromChainId === 12 || fromChainId === 512) {
+                            txHash = await handleZkspace(fromAddress, fromChainId, res);
+                        } else if (fromChainId === 14 || fromChainId === 514) {
+                            txHash = await handleZksync(res);
+                        } else {
+                            txHash = await handleEvm(res, privateKeys);
+                        }
+                    } catch (e) {
+                        ElNotification({
+                            title: 'Error',
+                            message: e.message,
+                            type: 'error',
+                        });
+                        return;
                     }
                     form.tx = `${ $env.txExploreUrl[form.fromChainId] }${ txHash }`;
                     ElNotification({
@@ -505,6 +514,7 @@
                         }
                     }
                 } = res.result.txRequest;
+                await switchNetwork(networkId);
                 const web3 = new Web3(window.ethereum);
                 const client = new DydxClient(host, {
                     networkId,
@@ -618,6 +628,13 @@
                 });
                 if (response?.hash) {
                     console.log('txHash', response.hash);
+                    const resData = await userApi.getUserTransferList(
+                        {
+                            hashes: response.hash,
+                        },
+                        apiKey
+                    );
+                    console.log('response',resData);
                     return response.hash;
                 }
             };
