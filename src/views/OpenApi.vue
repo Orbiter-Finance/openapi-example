@@ -198,7 +198,7 @@
                 if (res.code === 0) {
                     let txHash = '';
                     if (fromChainId === 3 || fromChainId === 33) {
-                        txHash = await handleZk(res, fromAddress);
+                        txHash = await handleZk(res, fromChainId, fromAddress);
                     } else if (fromChainId === 4 || fromChainId === 44) {
                         txHash = await handleStarknet(res);
                     } else if (fromChainId === 8 || fromChainId === 88) {
@@ -259,9 +259,8 @@
                 });
             };
 
-            const handleZk = async (res, fromAddress) => {
+            const handleZk = async (res, chainId, fromAddress) => {
                 const {
-                    syncProvider,
                     changePubkeyLegacyMessage,
                     batchBuilder: {
                         signSyncChangePubKey,
@@ -271,7 +270,9 @@
                 } = res.result.txRequest;
                 const web3Provider = new Web3(window.ethereum);
                 const ethWallet = new ethers.providers.Web3Provider(web3Provider.currentProvider);
-                // const syncProvider = await zksync.Provider.newHttpProvider('https://goerli-api.zksync.io/jsrpc');
+                const syncProvider = chainId === 33 ?
+                    await zksync.Provider.newHttpProvider('https://goerli-api.zksync.io/jsrpc') :
+                    await zksync.getDefaultProvider('mainnet');
                 const syncWallet = await zksync.Wallet.fromEthSigner(
                     ethWallet.getSigner(fromAddress),
                     syncProvider
@@ -513,6 +514,7 @@
                     ethereumAddress
                 );
                 if (userExists.exists) {
+                    client.starkPrivateKey = await client.onboarding.deriveStarkKey(ethereumAddress, signingMethod);
                     client.apiKeyCredentials = await client.onboarding.recoverDefaultApiCredentials(ethereumAddress, signingMethod);
                 } else {
                     const keyPair = await client.onboarding.deriveStarkKey(ethereumAddress, signingMethod);
@@ -582,9 +584,8 @@
                     getNextStorageIdFunc,
                     submitInternalTransaction
                 } = res.result.txRequest;
-
-                const userApi = new UserAPI({ chainId: netWorkId });
                 const web3 = new Web3(window.ethereum);
+                const userApi = new UserAPI({ chainId: netWorkId });
 
                 const eddsaKey = await generateKeyPair({
                     web3,
