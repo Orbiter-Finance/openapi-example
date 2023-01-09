@@ -62,12 +62,12 @@
                     </el-form>
                 </div>
                 <div style="display: flex;align-items: center;justify-content: center;">
-                    <el-button type="success" style="margin: 20px" v-if="form.isConnectWallet">钱包已连接</el-button>
+                    <el-button type="success" style="margin: 20px" @click="connectWallet" v-if="form.isConnectWallet">钱包已连接</el-button>
                     <el-button style="margin: 20px" v-else @click="connectWallet">连接钱包</el-button>
-                    <el-button type="success" style="margin: 20px" v-if="form.isConnectStarkNetWallet">StarkNet钱包已连接</el-button>
+                    <el-button type="success" style="margin: 20px" @click="connectStarkNetWallet" v-if="form.isConnectStarkNetWallet">StarkNet钱包已连接</el-button>
                     <el-button style="margin: 20px" v-else @click="connectStarkNetWallet">连接StarkNet钱包</el-button>
-                    <el-button style="margin: 20px" @click="evmTx">发送交易</el-button>
-                    <div v-if="form.tx">
+                    <el-button style="margin: 20px" @click="sendTx">发送交易</el-button>
+                    <div v-if="form.tx"><br/>
                         <a :href="form.tx">{{ form.tx }}</a>
                     </div>
                 </div>
@@ -171,6 +171,7 @@
 
             const switchNetwork = async (networkId) => {
                 const chainId = networkId || chainIdMap[form.fromChainId];
+                console.log('switch chainId', chainId);
                 const switchParams = {
                     chainId: '0x' + Number(chainId).toString(16),
                 };
@@ -180,12 +181,16 @@
                 });
             };
 
-            const evmTx = async () => {
-                await switchNetwork();
-                const privateKeys = form.privateKeys;
-                const fromChainId = form.fromChainId;
-                const fromAddress = form.fromAddress;
+            const sendTx = async () => {
+                const fromChainId = +form.fromChainId;
                 const id = `${ fromChainId }-${ form.toChainId }:${ form.fromSymbol }-${ form.toSymbol }`;
+                console.log('id', id);
+                // zk chains
+                if (![3, 33, 4, 44, 8, 88, 9, 99, 11, 511, 12, 512, 14, 514].includes(fromChainId)) {
+                    await switchNetwork();
+                }
+                const privateKeys = form.privateKeys;
+                const fromAddress = form.fromAddress;
                 const value = form.value;
                 const res = await http3.get(`/tx?id=${ id }&value=${ value }&fromAddress=${ form.fromAddress }&toAddress=${ form.fromAddress }`);
                 console.log('res', res);
@@ -599,7 +604,7 @@
                     apiKey
                 );
                 const request = submitInternalTransaction.params.request;
-                request.storageId = storageId;
+                request.storageId = storageId.offchainId;
                 // step 4 transfer
                 const response = await userApi.submitInternalTransfer({
                     request,
@@ -651,7 +656,7 @@
             };
 
             return {
-                evmTx,
+                sendTx,
                 connectWallet,
                 connectStarkNetWallet,
                 form,
