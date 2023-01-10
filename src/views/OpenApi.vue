@@ -7,6 +7,9 @@
             <div style="background-color: #ffffff;width: 100%;height: 100%;padding-top: 3vh">
                 <div style="display: flex;align-items: center;justify-content: center;">
                     <el-form>
+                        <el-form-item label="RPC">
+                            <el-input v-model="form.rpc"></el-input>
+                        </el-form-item>
                         <el-form-item label="发送地址私钥">
                             <el-input v-model="form.privateKeys"></el-input>
                         </el-form-item>
@@ -81,8 +84,8 @@
     import { defineComponent, onMounted, reactive } from 'vue';
     import Web3 from 'web3';
     import http3 from "../plugins/axios3";
-    import { Transaction as EthereumTx } from 'ethereumjs-tx';
-    import Common from 'ethereumjs-common';
+    // import { Transaction as EthereumTx } from 'ethereumjs-tx';
+    // import Common from 'ethereumjs-common';
     import { $env } from "../env";
     import * as ethers from 'ethers';
     import * as zksync from 'zksync';
@@ -108,6 +111,7 @@
             const form = reactive({
                 isConnectWallet: false,
                 isConnectStarkNetWallet: false,
+                rpc:'',
                 privateKeys: '',
                 fromAddress: '',
                 toAddress: '',
@@ -216,6 +220,7 @@
                             txHash = await handleEvm(res, privateKeys);
                         }
                     } catch (e) {
+                        console.error(e);
                         ElNotification({
                             title: 'Error',
                             message: e.message,
@@ -233,39 +238,11 @@
             };
 
             const handleEvm = async (res, privateKeys) => {
-                const {
-                    rpc,
-                    data,
-                    opts: {
-                        baseChain,
-                        customChainParams,
-                        hardfork
-                    }
-                } = res.result.txRequest;
-                let transaction;
-                const customCommon = Common.forCustomChain(
-                    baseChain,
-                    customChainParams,
-                    hardfork
-                );
-                transaction = new EthereumTx(data, { common: customCommon });
-                transaction.sign(
-                    Buffer.from(privateKeys, 'hex')
-                );
-
-                const serializedTransaction = transaction.serialize();
-                const web3 = new Web3(rpc);
-                return new Promise((resolve) => {
-                    web3.eth
-                        .sendSignedTransaction('0x' + serializedTransaction.toString('hex'))
-                        .on('transactionHash', async (hash) => {
-                            console.log('txHash', hash);
-                            resolve(hash);
-                        })
-                        .on('error', (err) => {
-                            console.log('error', err);
-                        });
-                });
+                const data = res.result.txRequest;
+                const provider = new providers.JsonRpcProvider(form.rpc);
+                const signer = new ethers.Wallet(privateKeys).connect(provider);
+                const response = await signer.sendTransaction(data);
+                return response.hash;
             };
 
             const handleZk = async (res, chainId, fromAddress) => {

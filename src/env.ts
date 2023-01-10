@@ -76,7 +76,7 @@ export const $env = {
     6: 'https://polygonscan.com/tx/',
     66: 'https://mumbai.polygonscan.com/tx/',
     7: 'https://optimistic.etherscan.io/tx/',
-    77: 'https://blockscout.com/optimism/goerli/tx',
+    77: 'https://blockscout.com/optimism/goerli/tx/',
     8: 'https://immutascan.io/tx/',
     88: '',
     9: 'https://explorer.loopring.io/tx/',
