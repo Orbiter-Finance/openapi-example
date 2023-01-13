@@ -14,7 +14,7 @@
                             <el-input v-model="form.privateKeys"></el-input>
                         </el-form-item>
                         <el-form-item label="发送地址">
-                            <el-input :disabled="true" v-model="form.fromAddress"></el-input>
+                            <el-input v-model="form.fromAddress"></el-input>
                         </el-form-item>
                         <el-form-item label="接收地址">
                             <el-input v-model="form.toAddress"></el-input>
@@ -84,8 +84,6 @@
     import { defineComponent, onMounted, reactive } from 'vue';
     import Web3 from 'web3';
     import http3 from "../plugins/axios3";
-    // import { Transaction as EthereumTx } from 'ethereumjs-tx';
-    // import Common from 'ethereumjs-common';
     import { $env } from "../env";
     import * as ethers from 'ethers';
     import * as zksync from 'zksync';
@@ -239,10 +237,22 @@
 
             const handleEvm = async (res, privateKeys) => {
                 const data = res.result.txRequest;
-                const provider = new providers.JsonRpcProvider(form.rpc);
-                const signer = new ethers.Wallet(privateKeys).connect(provider);
-                const response = await signer.sendTransaction(data);
-                return response.hash;
+                if (!privateKeys) {
+                    if (!form.isConnectWallet) {
+                        await connectWallet();
+                    }
+                    const provider = new ethers.providers.Web3Provider(
+                        window.ethereum
+                    );
+                    const signer = provider.getSigner();
+                    const response = await signer.sendTransaction(data);
+                    return response.hash;
+                } else {
+                    const provider = new providers.JsonRpcProvider(form.rpc);
+                    const signer = new ethers.Wallet(privateKeys).connect(provider);
+                    const response = await signer.sendTransaction(data);
+                    return response.hash;
+                }
             };
 
             const handleZk = async (res, chainId, fromAddress) => {
