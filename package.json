@@ -13,10 +13,12 @@
     "@element-plus/icons": "^0.0.11",
     "axios": "^0.24.0",
     "bignumber.js": "^9.0.2",
+    "caniuse-lite": "^1.0.30001449",
     "core-js": "^3.6.5",
     "crypto-js": "^4.1.1",
     "dayjs": "^1.10.7",
     "element-plus": "1.2.0-beta.6",
+    "elliptic": "^6.5.4",
     "eth-sig-util": "^3.0.1",
     "ethers": "^5.5.2",
     "get-starknet": "^1.4.2",
@@ -72,7 +74,9 @@
     "parserOptions": {
       "parser": "@typescript-eslint/parser"
     },
-    "rules": {}
+    "rules": {
+      "no-debugger": "off"
+    }
   },
   "browserslist": [
     "> 1%",

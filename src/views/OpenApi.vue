@@ -7,11 +7,11 @@
             <div style="background-color: #ffffff;width: 100%;height: 100%;padding-top: 3vh">
                 <div style="display: flex;align-items: center;justify-content: center;">
                     <el-form>
-                        <el-form-item label="RPC">
-                            <el-input v-model="form.rpc"></el-input>
-                        </el-form-item>
                         <el-form-item label="发送地址私钥">
                             <el-input v-model="form.privateKeys"></el-input>
+                        </el-form-item>
+                        <el-form-item v-if="form.privateKeys" label="RPC">
+                            <el-input v-model="form.rpc"></el-input>
                         </el-form-item>
                         <el-form-item label="发送地址">
                             <el-input v-model="form.fromAddress"></el-input>
@@ -70,9 +70,9 @@
                     <el-button type="success" style="margin: 20px" @click="connectStarkNetWallet" v-if="form.isConnectStarkNetWallet">StarkNet钱包已连接</el-button>
                     <el-button style="margin: 20px" v-else @click="connectStarkNetWallet">连接StarkNet钱包</el-button>
                     <el-button style="margin: 20px" @click="sendTx">发送交易</el-button>
-                    <div v-if="form.tx"><br/>
-                        <a :href="form.tx">{{ form.tx }}</a>
-                    </div>
+                </div>
+                <div v-if="form.tx">
+                    <a :href="form.tx">{{ form.tx }}</a>
                 </div>
             </div>
         </div>
@@ -88,34 +88,52 @@
     import * as ethers from 'ethers';
     import * as zksync from 'zksync';
     import { ElNotification } from 'element-plus';
-    import { utils } from 'zksync';
-    import { submitSignedTransactionsBatch } from 'zksync/build/wallet';
     import { private_key_to_pubkey_hash, sign_musig } from 'zksync-crypto';
     import axios from 'axios';
-    import * as zksync2 from 'zksync-web3';
     import { getStarknet, connect as getStarknetWallet } from 'get-starknet';
-    import { Contract } from 'starknet';
-    import BigNumber from "bignumber.js";
+    import { toUtf8Bytes } from "ethers/lib/utils";
     import { DydxClient } from '@dydxprotocol/v3-client';
     import { providers } from 'ethers';
     import { ImmutableXClient } from '@imtbl/imx-sdk';
     import { generateKeyPair, UserAPI } from '@loopring-web/loopring-sdk';
+    import BN from 'bn.js';
+    import hashJS from 'hash.js';
+    import elliptic from 'elliptic';
+    const { ec: EC, curves } = elliptic;
+    export const ec = new EC(
+        new curves.PresetCurve({
+            type: 'short',
+            prime: null,
+            p: '800000000000011000000000000000000000000000000000000000000000001',
+            a: '00000000 00000000 00000000 00000000 00000000 00000000 00000000 00000001',
+            b: '06f21413 efbe40de 150e596d 72f7a8c5 609ad26c 15c915c1 f4cdfcb9 9cee9e89',
+            n: '800000000000010FFFFFFFFFFFFFFFFB781126DCAE7B2321E66A241ADC64D2F',
+            hash: hashJS.sha256,
+            gRed: false,
+            g: [
+                '1ef15c18599971b7beced415a40f0c7deacfd9b0d1819e03d723d8bc943cfca',
+                '5668060aa49730b7be4801df46ec62de53ecd11abe43a32873000c36e8dc1f',
+            ],
+        })
+    );
 
-    const tokenMap = {};
     const chainIdMap = {};
+    const fromTokenMap = {};
+    const toTokenMap = {};
+    let routeList = [];
 
     export default defineComponent({
         setup() {
             const form = reactive({
                 isConnectWallet: false,
                 isConnectStarkNetWallet: false,
-                rpc:'',
+                rpc: '',
                 privateKeys: '',
                 fromAddress: '',
                 toAddress: '',
-                value: '0.01',
-                fromChainId: '5',
-                toChainId: '22',
+                value: '0.0001',
+                fromChainId: '',
+                toChainId: '',
                 fromSymbol: 'ETH',
                 toSymbol: 'ETH',
                 fromChainIdOptions: [],
@@ -130,7 +148,11 @@
                     window.ethereum.enable().then((res) => {
                         form.fromAddress = form.toAddress = res[0];
                         form.isConnectWallet = true;
-                        alert("当前钱包地址:" + res[0]);
+                        ElNotification({
+                            title: 'Success',
+                            message: 'Connect succeeded',
+                            type: 'success',
+                        });
                     });
                 } else {
                     alert("请安装MetaMask钱包");
@@ -138,36 +160,39 @@
             };
 
             const connectStarkNetWallet = async () => {
-                if (!getStarknet().isConnected) {
-                    const { href } = window.location;
-                    const match = href.match(/referer=(\w*)/i);
-                    const refer = match?.[1] ? match[1].toUpperCase() : '';
-                    const isArgentX = refer === 'argent'.toUpperCase();
-                    const isBraavos = refer === 'braavos'.toUpperCase();
+                const { href } = window.location;
+                const match = href.match(/referer=(\w*)/i);
+                const refer = match?.[1] ? match[1].toUpperCase() : '';
+                const isArgentX = refer === 'argent'.toUpperCase();
+                const isBraavos = refer === 'braavos'.toUpperCase();
 
-                    const obj = {
-                        order: isArgentX
-                            ? ['argentX']
-                            : isBraavos
-                                ? ['braavos']
-                                : ['argentX', 'braavos'],
-                    };
-                    const wallet = await getStarknetWallet(obj);
-                    if (!wallet) {
-                        return;
-                    }
-                    const enabled = await wallet
-                        .enable({ showModal: false })
-                        .then((address) => !!address?.length);
+                const obj = {
+                    order: isArgentX
+                        ? ['argentX']
+                        : isBraavos
+                            ? ['braavos']
+                            : ['argentX', 'braavos'],
+                };
+                const wallet = await getStarknetWallet(obj);
+                if (!wallet) {
+                    return;
+                }
+                const enabled = await wallet
+                    .enable({ showModal: false })
+                    .then((address) => {
+                            form.fromAddress = address;
+                            console.log('wallet', wallet);
+                            return !!address?.length;
+                        }
+                    );
 
-                    if (enabled) {
-                        form.isConnectStarkNetWallet = true;
-                        ElNotification({
-                            title: 'Success',
-                            message: 'Connect succeeded',
-                            type: 'success',
-                        });
-                    }
+                if (enabled) {
+                    form.isConnectStarkNetWallet = true;
+                    ElNotification({
+                        title: 'Success',
+                        message: 'Connect succeeded',
+                        type: 'success',
+                    });
                 }
             };
 
@@ -183,25 +208,37 @@
                 });
             };
 
-            const sendTx = async () => {
+            const reqTx = async (cursor, prevData) => {
+                const privateKeys = form.privateKeys;
+                const type = privateKeys ? 2 : 1;
                 const fromChainId = +form.fromChainId;
                 const id = `${ fromChainId }-${ form.toChainId }:${ form.fromSymbol }-${ form.toSymbol }`;
-                console.log('id', id);
+                const fromAddress = form.fromAddress;
+                const toAddress = form.fromAddress;
+                const value = form.value;
+                const url = cursor ?
+                    `/tx?id=${ id }&value=${ value }&fromAddress=${ fromAddress }&toAddress=${ toAddress }&type=${ type }&cursor=${ cursor }&prevData=${ JSON.stringify(prevData) }` :
+                    `/tx?id=${ id }&value=${ value }&fromAddress=${ fromAddress }&toAddress=${ toAddress }&type=${ type }`;
+                const res = await http3.get(url);
+                console.log('res', res);
+                return res;
+            };
+
+            const sendTx = async () => {
+                const fromChainId = +form.fromChainId;
                 // zk chains
                 if (![3, 33, 4, 44, 8, 88, 9, 99, 11, 511, 12, 512, 14, 514].includes(fromChainId)) {
                     await switchNetwork();
                 }
                 const privateKeys = form.privateKeys;
                 const fromAddress = form.fromAddress;
-                const value = form.value;
-                const res = await http3.get(`/tx?id=${ id }&value=${ value }&fromAddress=${ form.fromAddress }&toAddress=${ form.fromAddress }`);
-                console.log('res', res);
+                const res = await reqTx();
                 // success
                 if (res.code === 0) {
                     let txHash = '';
                     try {
                         if (fromChainId === 3 || fromChainId === 33) {
-                            txHash = await handleZk(res, fromChainId, fromAddress);
+                            txHash = await handleZk(res);
                         } else if (fromChainId === 4 || fromChainId === 44) {
                             txHash = await handleStarknet(res);
                         } else if (fromChainId === 8 || fromChainId === 88) {
@@ -213,7 +250,7 @@
                         } else if (fromChainId === 12 || fromChainId === 512) {
                             txHash = await handleZkspace(fromAddress, fromChainId, res);
                         } else if (fromChainId === 14 || fromChainId === 514) {
-                            txHash = await handleZksync(res);
+                            txHash = await handleZksync2(res);
                         } else {
                             txHash = await handleEvm(res, privateKeys);
                         }
@@ -235,9 +272,18 @@
                 }
             };
 
-            const handleEvm = async (res, privateKeys) => {
-                const data = res.result.txRequest;
-                if (!privateKeys) {
+            const handleEvm = async (res) => {
+                const { txResponse, txRequest } = res.result;
+                const privateKeys = form.privateKeys;
+                let hash;
+                if (privateKeys) {
+                    console.log('Send transaction by private key');
+                    const provider = new providers.JsonRpcProvider(form.rpc);
+                    const signer = new ethers.Wallet(privateKeys).connect(provider);
+                    const response = await signer.sendTransaction(txRequest);
+                    hash = response.hash;
+                } else {
+                    console.log('Send transaction by wallet');
                     if (!form.isConnectWallet) {
                         await connectWallet();
                     }
@@ -245,93 +291,85 @@
                         window.ethereum
                     );
                     const signer = provider.getSigner();
-                    const response = await signer.sendTransaction(data);
-                    return response.hash;
+                    const response = await signer.sendTransaction(txRequest);
+                    hash = response.hash;
+                }
+                if (txResponse?.next) {
+                    const res = await reqTx(txResponse?.next, { hash });
+                    return await handleEvm(res, privateKeys);
                 } else {
-                    const provider = new providers.JsonRpcProvider(form.rpc);
-                    const signer = new ethers.Wallet(privateKeys).connect(provider);
-                    const response = await signer.sendTransaction(data);
-                    return response.hash;
+                    return hash;
                 }
             };
 
-            const handleZk = async (res, chainId, fromAddress) => {
-                const {
-                    changePubkeyLegacyMessage,
-                    batchBuilder: {
-                        signSyncChangePubKey,
-                        addTransfer
-                    },
-                    syncTransfer
-                } = res.result.txRequest;
-                const web3Provider = new Web3(window.ethereum);
-                const ethWallet = new ethers.providers.Web3Provider(web3Provider.currentProvider);
-                const syncProvider = chainId === 33 ?
-                    await zksync.Provider.newHttpProvider('https://goerli-api.zksync.io/jsrpc') :
-                    await zksync.getDefaultProvider('mainnet');
-                const syncWallet = await zksync.Wallet.fromEthSigner(
-                    ethWallet.getSigner(fromAddress),
-                    syncProvider
-                );
-                if (!(await syncWallet.isSigningKeySet())) {
-                    const batchBuilder = syncWallet.batchBuilder(signSyncChangePubKey.params.nonce);
-                    const newPubKeyHash = await syncWallet.signer.pubKeyHash();
-
-                    const changePubKeyMessage = utils.getChangePubkeyLegacyMessage(
-                        newPubKeyHash,
-                        changePubkeyLegacyMessage.params.nonce,
-                        changePubkeyLegacyMessage.params.accountId
-                    );
-                    const ethSignature = (
-                        await syncWallet.getEthMessageSignature(changePubKeyMessage)
-                    ).signature;
-
-                    const changePubKeyTx = await syncWallet.signer.signSyncChangePubKey({
-                        accountId: signSyncChangePubKey.params.accountId,
-                        account: syncWallet.address(),
-                        newPkHash: newPubKeyHash,
-                        nonce: signSyncChangePubKey.params.nonce,
-                        ethSignature: ethSignature,
-                        validFrom: signSyncChangePubKey.params.validFrom,
-                        validUntil: signSyncChangePubKey.params.validUntil,
-                        fee: signSyncChangePubKey.params.fee,
-                        feeTokenId: signSyncChangePubKey.params.feeTokenId,
-                    });
-                    batchBuilder.addChangePubKey({
-                        tx: changePubKeyTx,
-                        // @ts-ignore
-                        alreadySigned: true,
-                    });
-                    batchBuilder.addTransfer({
-                        to: addTransfer.params.to,
-                        token: addTransfer.params.token,
-                        amount: addTransfer.params.amount,
-                        fee: addTransfer.params.fee,
-                    });
-                    const batchTransactionData = await batchBuilder.build();
-                    const transactions = await submitSignedTransactionsBatch(
-                        syncWallet.provider,
-                        batchTransactionData.txs,
-                        [batchTransactionData.signature]
-                    );
-                    let transaction;
-                    for (const tx of transactions) {
-                        if (tx.txData.tx.type !== 'ChangePubKey') {
-                            transaction = tx;
-                            break;
-                        }
-                    }
-                    const transferReceipt = await transaction.awaitReceipt();
-                    if (transferReceipt.success && !transferReceipt.failReason) {
-                        console.log('txHash', transaction.txHash);
-                        return transaction.txHash;
+            const handleZk = async (res) => {
+                const { txResponse, txRequest } = res.result;
+                const privateKeys = form.privateKeys;
+                const fromChainId = form.fromChainId;
+                if (privateKeys) {
+                    console.log('Send transaction by private key');
+                    if (txResponse.next) {
+                        const message = toUtf8Bytes(txRequest);
+                        const provider = +fromChainId === 3 ?
+                            ethers.providers.getDefaultProvider('mainnet') :
+                            ethers.providers.getDefaultProvider('rinkeby');
+                        const signer = new ethers.Wallet(privateKeys).connect(provider);
+                        const signature = await signer.signMessage(message);
+                        const res = await reqTx(txResponse.next, { signature });
+                        return await handleZk(res);
+                    } else {
+                        return txResponse.hash;
                     }
                 } else {
-                    const transaction = await syncWallet.syncTransfer(syncTransfer.params);
-                    const transferReceipt = await transaction.awaitReceipt();
-                    if (transferReceipt.success && !transferReceipt.failReason) {
-                        console.log('txHash', transaction.txHash);
-                        return transaction.txHash;
+                    console.log('Send transaction by wallet');
+                    if (txResponse.next) {
+                        const message = toUtf8Bytes(txRequest);
+                        const provider = new ethers.providers.Web3Provider(
+                            window.ethereum
+                        );
+                        let signer = provider.getSigner();
+                        const signature = await signer.signMessage(message);
+                        const res = await reqTx(txResponse.next, { signature });
+                        return await handleZk(res);
+                    } else {
+                        return txResponse.hash;
+                    }
+                }
+            };
+
+            const handleZksync2 = async (res) => {
+                const { txResponse, txRequest } = res.result;
+                const privateKeys = form.privateKeys;
+                if (privateKeys) {
+                    console.log(privateKeys);
+                } else {
+                    if (txResponse.next) {
+                        const { chainId, types, value } = txRequest;
+                        const provider = new ethers.providers.Web3Provider(
+                            window.ethereum
+                        );
+                        const signer = provider.getSigner();
+                        const signature = await signer._signTypedData(
+                            await Promise.resolve(chainId).then((chainId) => ({
+                                name: 'zkSync',
+                                version: '2',
+                                chainId
+                            })),
+                            types,
+                            value
+                        );
+                        const res = await reqTx(txResponse.next, { signature });
+                        return await handleZksync2(res);
+                    } else {
+                        const provider = new ethers.providers.Web3Provider(
+                            window.ethereum
+                        );
+                        // const provider = new zksync2.Web3Provider(
+                        //     window.ethereum
+                        // );
+                        const transferResult = await provider.sendTransaction(txRequest);
+                        return transferResult.hash;
+                        // return txResponse.hash;
                     }
                 }
             };
@@ -417,66 +455,69 @@
                 return txHash;
             };
 
-            const handleZksync = async (res) => {
-                const provider = new zksync2.Web3Provider(window.ethereum);
-                const signer = provider.getSigner();
-                console.log('txRequest', res.result.txRequest);
-                const transferResult = await signer.sendTransaction(res.result.txRequest);
-                if (transferResult.hash) {
-                    console.log('txHash', transferResult.hash);
-                    return transferResult.hash;
+            const handleStarknet = async (res) => {
+                const { txResponse, txRequest } = res.result;
+                const privateKeys = form.privateKeys;
+                const getKeyPair = (privateKeys) => {
+                    return ec.keyFromPrivate(removeHexPrefix(toHex(toBN(privateKeys))), 'hex');
+                };
+
+                if (privateKeys) {
+                    console.log('Send transaction by private key');
+                    if (txResponse.next) {
+                        const keyPair = getKeyPair(privateKeys);
+                        const { r, s } = keyPair.sign(txRequest);
+                        const signature = {
+                            r: toHex(r),
+                            s: toHex(s),
+                        };
+                        const res = await reqTx(txResponse.next, { signature });
+                        return await handleStarknet(res);
+                    } else {
+                        return txResponse.hash;
+                    }
+                } else {
+                    console.log('Send transaction by wallet');
+                    return (await getStarknet().account.execute(txRequest)).transaction_hash;
+                    // if (txResponse.next) {
+                    //     // const { r, s } = await getStarknet().account.signer.keyPair.sign(txRequest);
+                    //     const { r, s } = await getStarknet().account.sign(txRequest);
+                    //     const signature = {
+                    //         r: toHex(r),
+                    //         s: toHex(s),
+                    //     };
+                    //     const res = await reqTx(txResponse.next, { signature });
+                    //     return await handleStarknet(res);
+                    // } else {
+                    //     return txResponse.hash;
+                    // }
                 }
             };
 
-            const handleStarknet = async (res) => {
-                const {
-                    amount,
-                    tokenContract: {
-                        params: {
-                            erc20Abi,
-                            tokenAddress,
-                        }
-                    },
-                    crossContract: {
-                        params: {
-                            starkNetCrossAbi,
-                            contractAddress
-                        }
-                    },
-                    approveTransaction,
-                    transferTransaction
-                } = res.result.txRequest;
-                let amountBig = new BigNumber(amount);
-                const tokenContract = new Contract(
-                    erc20Abi,
-                    tokenAddress,
-                    getStarknet().provider
-                );
+            const removeHexPrefix = (hex) => {
+                return hex.replace(/^0x/, '');
+            };
 
-                const ownerAddress = getStarknet().selectedAddress;
-                const allowances = await tokenContract.allowance(ownerAddress, contractAddress);
-                const allowance = allowances?.remaining?.low;
-                if (amountBig.gt(allowance)) {
-                    await getStarknet().account.execute({
-                        contractAddress: tokenContract.address,
-                        entrypoint: approveTransaction.entrypoint,
-                        calldata: approveTransaction.calldata,
-                    });
+            const addHexPrefix = (hex) => {
+                return `0x${ removeHexPrefix(hex) }`;
+            };
+
+            const toHex = (number) => {
+                return addHexPrefix(number.toString('hex'));
+            };
+
+            const toBN = (number, base) => {
+                if (typeof number === 'string') {
+                    // eslint-disable-next-line no-param-reassign
+                    number = number.toLowerCase();
                 }
-                const crossContract = new Contract(
-                    starkNetCrossAbi,
-                    contractAddress,
-                    getStarknet().provider
-                );
-                const txhash = await getStarknet().account.execute({
-                    contractAddress: crossContract.address,
-                    entrypoint: transferTransaction.entrypoint,
-                    calldata: transferTransaction.calldata,
-                });
-                if (txhash?.code === 'TRANSACTION_RECEIVED') {
-                    console.log('txHash', txhash.transaction_hash);
-                    return txhash.transaction_hash;
-                }
+                if (typeof number === 'string' && isHex(number) && !base)
+                    return new BN(removeHexPrefix(number), 'hex');
+                return new BN(number, base);
+            };
+
+            const isHex = (hex) => {
+                return /^0x[0-9a-f]*$/i.test(hex);
             };
 
             const handleDydx = async (res) => {
@@ -630,34 +671,49 @@
                 const chainRes = await http3.get(`/chains`);
                 if (chainRes.code === 0) {
                     const { result } = chainRes;
-                    const options = [];
                     for (const data of result) {
-                        options.push({ label: data.name, value: data.internalId });
                         chainIdMap[data.internalId] = data.chainId;
                     }
-                    form.toChainIdOptions = form.fromChainIdOptions = options;
                 }
-                const tokenRes = await http3.get(`/tokens`);
-                if (tokenRes.code === 0) {
-                    const { result } = tokenRes;
+                const routeRes = await http3.get(`/routes`);
+                if (routeRes.code === 0) {
+                    const { result } = routeRes;
+                    routeList = result;
+                    const fromChainIdOptions = [];
                     for (const data of result) {
-                        const options = [];
-                        const mainToken = data.nativeCurrency.symbol;
-                        options.push({ label: mainToken, value: mainToken });
-                        options.push(...data.tokens.map(item => {
-                            return { label: item.symbol, value: item.symbol };
-                        }));
-                        tokenMap[data.internalId] = options;
+                        if (!fromChainIdOptions.find(item => item.value === data.fromChain.id)) {
+                            fromChainIdOptions.push({ label: data.fromChain.name, value: data.fromChain.id });
+                        }
+                        fromTokenMap[data.fromChain.id] = fromTokenMap[data.fromChain.id] || [];
+                        if (!fromTokenMap[data.fromChain.id].find(it => it.value === data.fromChain.symbol)) {
+                            fromTokenMap[data.fromChain.id].push({
+                                label: data.fromChain.symbol,
+                                value: data.fromChain.symbol
+                            });
+                        }
+                        toTokenMap[data.toChain.id] = toTokenMap[data.toChain.id] || [];
+                        if (!toTokenMap[data.toChain.id].find(it => it.value === data.toChain.symbol)) {
+                            toTokenMap[data.toChain.id].push({
+                                label: data.toChain.symbol,
+                                value: data.toChain.symbol
+                            });
+                        }
                     }
-                    form.fromSymbolOptions = tokenMap[form.fromChainId];
-                    form.toSymbolOptions = tokenMap[form.toChainId];
+                    form.fromChainIdOptions = fromChainIdOptions;
                 }
             });
             const changeFromChainId = () => {
-                form.fromSymbolOptions = tokenMap[form.fromChainId];
+                const toChainIdOptions = [];
+                for (const route of routeList) {
+                    if (route.fromChain.id === form.fromChainId && !toChainIdOptions.find(item => item.value === route.toChain.id)) {
+                        toChainIdOptions.push({ label: route.toChain.name, value: route.toChain.id });
+                    }
+                }
+                form.toChainIdOptions = toChainIdOptions;
+                form.fromSymbolOptions = fromTokenMap[form.fromChainId];
             };
             const changeToChainId = () => {
-                form.toSymbolOptions = tokenMap[form.toChainId];
+                form.toSymbolOptions = toTokenMap[form.toChainId];
             };
 
             return {
