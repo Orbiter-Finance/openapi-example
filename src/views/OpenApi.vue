@@ -10,7 +10,7 @@
                         <el-form-item label="发送地址私钥">
                             <el-input v-model="form.privateKeys"></el-input>
                         </el-form-item>
-                        <el-form-item v-if="form.privateKeys" label="RPC">
+                        <el-form-item v-if="form.privateKeys && !form.withoutRpcList.includes(form.fromChainId)" label="RPC">
                             <el-input v-model="form.rpc"></el-input>
                         </el-form-item>
                         <el-form-item label="发送地址">
@@ -96,6 +96,7 @@
     import { providers } from 'ethers';
     import { ImmutableXClient } from '@imtbl/imx-sdk';
     import { generateKeyPair, UserAPI } from '@loopring-web/loopring-sdk';
+    import * as zksync2 from 'zksync-web3';
     import BN from 'bn.js';
     import hashJS from 'hash.js';
     import elliptic from 'elliptic';
@@ -134,13 +135,14 @@
                 value: '0.0001',
                 fromChainId: '',
                 toChainId: '',
-                fromSymbol: 'ETH',
-                toSymbol: 'ETH',
+                fromSymbol: '',
+                toSymbol: '',
                 fromChainIdOptions: [],
                 toChainIdOptions: [],
                 fromSymbolOptions: [],
                 toSymbolOptions: [],
-                tx: ''
+                tx: '',
+                withoutRpcList: [4, 44]
             });
 
             const connectWallet = () => {
@@ -181,7 +183,6 @@
                     .enable({ showModal: false })
                     .then((address) => {
                             form.fromAddress = address;
-                            console.log('wallet', wallet);
                             return !!address?.length;
                         }
                     );
@@ -338,19 +339,33 @@
             };
 
             const handleZksync2 = async (res) => {
+                await switchNetwork(280);
                 const { txResponse, txRequest } = res.result;
                 const privateKeys = form.privateKeys;
                 if (privateKeys) {
                     console.log(privateKeys);
                 } else {
                     if (txResponse.next) {
-                        const { chainId, types, value } = txRequest;
+                        const { types, value } = txRequest;
                         const provider = new ethers.providers.Web3Provider(
                             window.ethereum
                         );
+                        // const provider = new zksync2.Web3Provider(
+                        //     window.ethereum
+                        // );
+                        const handleBigNumber = (data) => {
+                            for (const key in data) {
+                                if (data[key].type && data[key].type === 'BigNumber') {
+                                    data[key] = ethers.BigNumber.from(+data[key].hex)
+                                }
+                            }
+                        };
+                        handleBigNumber(value);
+                        console.log('value', value);
                         const signer = provider.getSigner();
+                        console.log('signer chainId', await signer.getChainId());
                         const signature = await signer._signTypedData(
-                            await Promise.resolve(chainId).then((chainId) => ({
+                            await Promise.resolve(await signer.getChainId()).then((chainId) => ({
                                 name: 'zkSync',
                                 version: '2',
                                 chainId
@@ -361,13 +376,18 @@
                         const res = await reqTx(txResponse.next, { signature });
                         return await handleZksync2(res);
                     } else {
-                        const provider = new ethers.providers.Web3Provider(
-                            window.ethereum
-                        );
-                        // const provider = new zksync2.Web3Provider(
+                        // const provider = new ethers.providers.Web3Provider(
                         //     window.ethereum
                         // );
-                        const transferResult = await provider.sendTransaction(txRequest);
+                        const provider = new zksync2.Web3Provider(
+                            window.ethereum
+                        );
+                        // const hexTx = await Promise.resolve(txRequest).then(t => hexlify(t));
+                        // console.log('hexTx',hexTx)
+                        // const hash = await provider.perform("sendTransaction", { signedTransaction: hexTx });
+                        // return hash;
+                        const signer = await provider.getSigner();
+                        const transferResult = await signer.sendTransaction(txRequest);
                         return transferResult.hash;
                         // return txResponse.hash;
                     }

@@ -33,19 +33,18 @@ http3.interceptors.response.use(
   function (response) {
     const respData = response.data;
 
-    if (respData.code != 0 && respData.errCode != 0) {
+    if (respData.code != 0) {
+        ElNotification({
+            title: 'Error',
+            message: `${ respData.msg }`,
+            type: 'error',
+        });
       return Promise.reject(new Error(respData.msg));
     }
 
     return respData;
   },
   function (error) {
-    ElNotification({
-      title: 'Error',
-      message: `Fail: ${ error.message }`,
-      type: 'error',
-    });
-
     // Do something with response error
     return Promise.reject(error);
   }
