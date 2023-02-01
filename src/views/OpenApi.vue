@@ -142,7 +142,7 @@
                 fromSymbolOptions: [],
                 toSymbolOptions: [],
                 tx: '',
-                withoutRpcList: [4, 44]
+                withoutRpcList: [4, 44, 14, 514]
             });
 
             const connectWallet = () => {
@@ -342,8 +342,23 @@
                 const { txResponse, txRequest } = res.result;
                 const privateKeys = form.privateKeys;
                 if (privateKeys) {
-                    console.log(privateKeys);
+                    console.log('Send transaction by private key');
+                    if (txResponse.next) {
+                        const { domain, types, value } = txRequest;
+                        const provider = new providers.JsonRpcProvider(form.rpc);
+                        const signer = new ethers.Wallet(privateKeys).connect(provider);
+                        const signature = await signer._signTypedData(
+                            domain,
+                            types,
+                            value
+                        );
+                        const res = await reqTx(txResponse.next, { signature });
+                        return await handleZksync2(res);
+                    } else {
+                        return txResponse.hash;
+                    }
                 } else {
+                    console.log('Send transaction by wallet');
                     if (txResponse.next) {
                         const { domain, types, value } = txRequest;
                         let provider = new ethers.providers.Web3Provider(
@@ -358,13 +373,7 @@
                         const res = await reqTx(txResponse.next, { signature });
                         return await handleZksync2(res);
                     } else {
-                        const provider = new ethers.providers.Web3Provider(
-                            window.ethereum
-                        );
-                        const { tx, hexTx } = txRequest;
-                        const hash = await provider.perform("sendTransaction", { signedTransaction: hexTx });
-                        const transferResult = provider._wrapTransaction(tx, hash);
-                        return transferResult.hash;
+                        return txResponse.hash;
                     }
                 }
             };
