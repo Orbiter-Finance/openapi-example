@@ -96,7 +96,7 @@
     import { providers } from 'ethers';
     import { ImmutableXClient } from '@imtbl/imx-sdk';
     import { generateKeyPair, UserAPI } from '@loopring-web/loopring-sdk';
-    import * as zksync2 from 'zksync-web3';
+    // import * as zksync2 from 'zksync-web3';
     import BN from 'bn.js';
     import hashJS from 'hash.js';
     import elliptic from 'elliptic';
@@ -228,7 +228,7 @@
             const sendTx = async () => {
                 const fromChainId = +form.fromChainId;
                 // zk chains
-                if (![3, 33, 4, 44, 8, 88, 9, 99, 11, 511, 12, 512, 14, 514].includes(fromChainId)) {
+                if (![3, 33, 4, 44, 8, 88, 9, 99, 11, 511, 12, 512].includes(fromChainId)) {
                     await switchNetwork();
                 }
                 const privateKeys = form.privateKeys;
@@ -339,57 +339,32 @@
             };
 
             const handleZksync2 = async (res) => {
-                await switchNetwork(280);
                 const { txResponse, txRequest } = res.result;
                 const privateKeys = form.privateKeys;
                 if (privateKeys) {
                     console.log(privateKeys);
                 } else {
                     if (txResponse.next) {
-                        const { types, value } = txRequest;
-                        const provider = new ethers.providers.Web3Provider(
+                        const { domain, types, value } = txRequest;
+                        let provider = new ethers.providers.Web3Provider(
                             window.ethereum
                         );
-                        // const provider = new zksync2.Web3Provider(
-                        //     window.ethereum
-                        // );
-                        const handleBigNumber = (data) => {
-                            for (const key in data) {
-                                if (data[key].type && data[key].type === 'BigNumber') {
-                                    data[key] = ethers.BigNumber.from(+data[key].hex)
-                                }
-                            }
-                        };
-                        handleBigNumber(value);
-                        console.log('value', value);
                         const signer = provider.getSigner();
-                        console.log('signer chainId', await signer.getChainId());
                         const signature = await signer._signTypedData(
-                            await Promise.resolve(await signer.getChainId()).then((chainId) => ({
-                                name: 'zkSync',
-                                version: '2',
-                                chainId
-                            })),
+                            domain,
                             types,
                             value
                         );
                         const res = await reqTx(txResponse.next, { signature });
                         return await handleZksync2(res);
                     } else {
-                        // const provider = new ethers.providers.Web3Provider(
-                        //     window.ethereum
-                        // );
-                        const provider = new zksync2.Web3Provider(
+                        const provider = new ethers.providers.Web3Provider(
                             window.ethereum
                         );
-                        // const hexTx = await Promise.resolve(txRequest).then(t => hexlify(t));
-                        // console.log('hexTx',hexTx)
-                        // const hash = await provider.perform("sendTransaction", { signedTransaction: hexTx });
-                        // return hash;
-                        const signer = await provider.getSigner();
-                        const transferResult = await signer.sendTransaction(txRequest);
+                        const { tx, hexTx } = txRequest;
+                        const hash = await provider.perform("sendTransaction", { signedTransaction: hexTx });
+                        const transferResult = provider._wrapTransaction(tx, hash);
                         return transferResult.hash;
-                        // return txResponse.hash;
                     }
                 }
             };
@@ -478,8 +453,35 @@
             const handleStarknet = async (res) => {
                 const { txResponse, txRequest } = res.result;
                 const privateKeys = form.privateKeys;
+
                 const getKeyPair = (privateKeys) => {
                     return ec.keyFromPrivate(removeHexPrefix(toHex(toBN(privateKeys))), 'hex');
+                };
+
+                const removeHexPrefix = (hex) => {
+                    return hex.replace(/^0x/, '');
+                };
+
+                const addHexPrefix = (hex) => {
+                    return `0x${ removeHexPrefix(hex) }`;
+                };
+
+                const toHex = (number) => {
+                    return addHexPrefix(number.toString('hex'));
+                };
+
+                const toBN = (number, base) => {
+                    if (typeof number === 'string') {
+                        // eslint-disable-next-line no-param-reassign
+                        number = number.toLowerCase();
+                    }
+                    if (typeof number === 'string' && isHex(number) && !base)
+                        return new BN(removeHexPrefix(number), 'hex');
+                    return new BN(number, base);
+                };
+
+                const isHex = (hex) => {
+                    return /^0x[0-9a-f]*$/i.test(hex);
                 };
 
                 if (privateKeys) {
@@ -512,32 +514,6 @@
                     //     return txResponse.hash;
                     // }
                 }
-            };
-
-            const removeHexPrefix = (hex) => {
-                return hex.replace(/^0x/, '');
-            };
-
-            const addHexPrefix = (hex) => {
-                return `0x${ removeHexPrefix(hex) }`;
-            };
-
-            const toHex = (number) => {
-                return addHexPrefix(number.toString('hex'));
-            };
-
-            const toBN = (number, base) => {
-                if (typeof number === 'string') {
-                    // eslint-disable-next-line no-param-reassign
-                    number = number.toLowerCase();
-                }
-                if (typeof number === 'string' && isHex(number) && !base)
-                    return new BN(removeHexPrefix(number), 'hex');
-                return new BN(number, base);
-            };
-
-            const isHex = (hex) => {
-                return /^0x[0-9a-f]*$/i.test(hex);
             };
 
             const handleDydx = async (res) => {
