@@ -9,7 +9,7 @@ import JSONBIG from 'json-bigint'
 // axios.defaults.headers.post['Content-Type'] = 'application/x-www-form-urlencoded';
 
 const config = {
-  baseURL:'http://localhost:9095/api/v1'
+  baseURL:'http://ec2-54-238-20-18.ap-northeast-1.compute.amazonaws.com:9095/v1'
   //   http://ec2-54-238-20-18.ap-northeast-1.compute.amazonaws.com:9095/api/v1 || 'http://localhost:9095/',
   // timeout: 60 * 1000, // Timeout
   // withCredentials: true, // Check cross-site Access-Control

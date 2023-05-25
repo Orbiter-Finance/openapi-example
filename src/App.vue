@@ -4,7 +4,7 @@
       <div class="el-header__container">
         <div class="header-logo">
           <img src="./assets/logo.png" alt="logo" />
-          <div>Orbiter Dashboard</div>
+          <div>Orbiter Open Api Demo</div>
         </div>
         <el-menu
           :default-active="route.path"

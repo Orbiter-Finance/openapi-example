@@ -7,7 +7,7 @@ module.exports = {
         hotOnly: false,
         proxy: {
             '/api': {
-                target: 'http://127.0.0.1:9095/',
+                target: 'http://ec2-54-238-20-18.ap-northeast-1.compute.amazonaws.com:9095/',
                 changeOrigin: true,
                 pathRewrite: { '^/api': '/api' }
             },
