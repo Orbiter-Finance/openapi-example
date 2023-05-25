@@ -68,6 +68,7 @@
                     <el-button type="success" style="margin: 20px" @click="connectWallet" v-if="form.isConnectWallet">钱包已连接</el-button>
                     <el-button style="margin: 20px" v-else @click="connectWallet">连接钱包</el-button>
                     <el-button type="success" style="margin: 20px" @click="connectStarkNetWallet" v-if="form.isConnectStarkNetWallet">StarkNet钱包已连接</el-button>
+                    <el-button style="margin: 20px" v-else @click="connectStarkNetWallet">连接StarkNet钱包</el-button>
                     <el-button style="margin: 20px" @click="sendTx">发送交易</el-button>
                 </div>
                 <div v-if="form.tx">
@@ -85,7 +86,29 @@
     import { $env } from "../env";
     import * as ethers from 'ethers';
     import { ElNotification } from 'element-plus';
+    import { getStarknet, connect as getStarknetWallet } from 'get-starknet';
+    import { toUtf8Bytes } from "ethers/lib/utils";
     import { providers } from 'ethers';
+    import BN from 'bn.js';
+    import hashJS from 'hash.js';
+    import elliptic from 'elliptic';
+    const { ec: EC, curves } = elliptic;
+    export const ec = new EC(
+        new curves.PresetCurve({
+            type: 'short',
+            prime: null,
+            p: '800000000000011000000000000000000000000000000000000000000000001',
+            a: '00000000 00000000 00000000 00000000 00000000 00000000 00000000 00000001',
+            b: '06f21413 efbe40de 150e596d 72f7a8c5 609ad26c 15c915c1 f4cdfcb9 9cee9e89',
+            n: '800000000000010FFFFFFFFFFFFFFFFB781126DCAE7B2321E66A241ADC64D2F',
+            hash: hashJS.sha256,
+            gRed: false,
+            g: [
+                '1ef15c18599971b7beced415a40f0c7deacfd9b0d1819e03d723d8bc943cfca',
+                '5668060aa49730b7be4801df46ec62de53ecd11abe43a32873000c36e8dc1f',
+            ],
+        })
+    );
 
     const chainIdMap = {};
     const fromTokenMap = {};
@@ -130,6 +153,42 @@
                 }
             };
 
+            const connectStarkNetWallet = async () => {
+                const { href } = window.location;
+                const match = href.match(/referer=(\w*)/i);
+                const refer = match?.[1] ? match[1].toUpperCase() : '';
+                const isArgentX = refer === 'argent'.toUpperCase();
+                const isBraavos = refer === 'braavos'.toUpperCase();
+
+                const obj = {
+                    order: isArgentX
+                        ? ['argentX']
+                        : isBraavos
+                            ? ['braavos']
+                            : ['argentX', 'braavos'],
+                };
+                const wallet = await getStarknetWallet(obj);
+                if (!wallet) {
+                    return;
+                }
+                const enabled = await wallet
+                    .enable({ showModal: false })
+                    .then((address) => {
+                            form.fromAddress = address;
+                            return !!address?.length;
+                        }
+                    );
+
+                if (enabled) {
+                    form.isConnectStarkNetWallet = true;
+                    ElNotification({
+                        title: 'Success',
+                        message: 'Connect succeeded',
+                        type: 'success',
+                    });
+                }
+            };
+
             const switchNetwork = async (networkId) => {
                 const chainId = networkId || chainIdMap[form.fromChainId];
                 console.log('switch chainId', chainId);
@@ -159,20 +218,24 @@
             };
 
             const sendTx = async () => {
-                // 切换网络
-                await switchNetwork();
+                const fromChainId = +form.fromChainId;
+                // zk chains
+                if (![3, 33, 4, 44, 8, 88, 9, 99, 11, 511, 12, 512].includes(fromChainId)) {
+                    await switchNetwork();
+                }
                 const privateKeys = form.privateKeys;
                 const res = await reqTx();
                 // success
                 if (res.code === 0) {
+                    let txHash = '';
                     try {
-                        const txHash = await handleEvm(res, privateKeys);
-                        form.tx = `${ $env.txExploreUrl[form.fromChainId] }${ txHash }`;
-                        ElNotification({
-                            title: 'Success',
-                            message: 'Transfer succeeded',
-                            type: 'success',
-                        });
+                        if (fromChainId === 3 || fromChainId === 33) {
+                            txHash = await handleZk(res);
+                        } else if (fromChainId === 4 || fromChainId === 44) {
+                            txHash = await handleStarknet(res);
+                        } else {
+                            txHash = await handleEvm(res, privateKeys);
+                        }
                     } catch (e) {
                         console.error(e);
                         ElNotification({
@@ -180,12 +243,20 @@
                             message: e.message,
                             type: 'error',
                         });
+                        return;
                     }
+                    form.tx = `${ $env.txExploreUrl[form.fromChainId] }${ txHash }`;
+                    ElNotification({
+                        title: 'Success',
+                        message: 'Transfer succeeded',
+                        type: 'success',
+                    });
                 }
             };
 
             const handleEvm = async (res) => {
                 const { txResponse, txRequest } = res.result;
+                console.log('txRequest ===', txRequest);
                 const privateKeys = form.privateKeys;
                 let hash;
                 if (privateKeys) {
@@ -213,6 +284,107 @@
                     return await handleEvm(res, privateKeys);
                 } else {
                     return hash;
+                }
+            };
+
+            const handleZk = async (res) => {
+                const { txResponse, txRequest } = res.result;
+                const privateKeys = form.privateKeys;
+                const fromChainId = form.fromChainId;
+                if (privateKeys) {
+                    console.log('Send transaction by private key');
+                    if (txResponse.next) {
+                        const message = toUtf8Bytes(txRequest);
+                        const provider = +fromChainId === 3 ?
+                            ethers.providers.getDefaultProvider('mainnet') :
+                            ethers.providers.getDefaultProvider('rinkeby');
+                        const signer = new ethers.Wallet(privateKeys).connect(provider);
+                        const signature = await signer.signMessage(message);
+                        const res = await reqTx(txResponse.next, { signature });
+                        return await handleZk(res);
+                    } else {
+                        return txResponse.hash;
+                    }
+                } else {
+                    console.log('Send transaction by wallet');
+                    if (txResponse.next) {
+                        const message = toUtf8Bytes(txRequest);
+                        const provider = new ethers.providers.Web3Provider(
+                            window.ethereum
+                        );
+                        let signer = provider.getSigner();
+                        const signature = await signer.signMessage(message);
+                        const res = await reqTx(txResponse.next, { signature });
+                        return await handleZk(res);
+                    } else {
+                        return txResponse.hash;
+                    }
+                }
+            };
+
+            const handleStarknet = async (res) => {
+                const { txResponse, txRequest } = res.result;
+                const privateKeys = form.privateKeys;
+
+                const getKeyPair = (privateKeys) => {
+                    return ec.keyFromPrivate(removeHexPrefix(toHex(toBN(privateKeys))), 'hex');
+                };
+
+                const removeHexPrefix = (hex) => {
+                    return hex.replace(/^0x/, '');
+                };
+
+                const addHexPrefix = (hex) => {
+                    return `0x${ removeHexPrefix(hex) }`;
+                };
+
+                const toHex = (number) => {
+                    return addHexPrefix(number.toString('hex'));
+                };
+
+                const toBN = (number, base) => {
+                    if (typeof number === 'string') {
+                        // eslint-disable-next-line no-param-reassign
+                        number = number.toLowerCase();
+                    }
+                    if (typeof number === 'string' && isHex(number) && !base)
+                        return new BN(removeHexPrefix(number), 'hex');
+                    return new BN(number, base);
+                };
+
+                const isHex = (hex) => {
+                    return /^0x[0-9a-f]*$/i.test(hex);
+                };
+
+                if (privateKeys) {
+                    console.log('Send transaction by private key');
+                    if (txResponse.next) {
+                        const keyPair = getKeyPair(privateKeys);
+                        const { r, s } = keyPair.sign(txRequest);
+                        const signature = {
+                            r: toHex(r),
+                            s: toHex(s),
+                        };
+                        const res = await reqTx(txResponse.next, { signature });
+                        return await handleStarknet(res);
+                    } else {
+                        return txResponse.hash;
+                    }
+                } else {
+                    console.log('Send transaction by wallet');
+                    return (await getStarknet().account.execute(txRequest)).transaction_hash;
+                    // if (txResponse.next) {
+                    //     // const { r, s } = await getStarknet().account.signer.keyPair.sign(txRequest);
+                    //     const { r, s } = await getStarknet().account.sign(txRequest);
+                    //     const signature = {
+                    //         r: toHex(r),
+                    //         s: toHex(s),
+                    //     };
+                    //     const res = await reqTx(txResponse.next, { signature });
+                    //     return await handleStarknet(res);
+                    // } else {
+                    //     return txResponse.hash;
+                    // }
                 }
             };
 
@@ -268,6 +440,7 @@
             return {
                 sendTx,
                 connectWallet,
+                connectStarkNetWallet,
                 form,
                 changeFromChainId,
                 changeToChainId
