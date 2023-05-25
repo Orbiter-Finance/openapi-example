@@ -278,12 +278,14 @@
                 const privateKeys = form.privateKeys;
                 let hash;
                 if (privateKeys) {
+                    // 私钥发送
                     console.log('Send transaction by private key');
                     const provider = new providers.JsonRpcProvider(form.rpc);
                     const signer = new ethers.Wallet(privateKeys).connect(provider);
                     const response = await signer.sendTransaction(txRequest);
                     hash = response.hash;
                 } else {
+                    // 钱包发送
                     console.log('Send transaction by wallet');
                     if (!form.isConnectWallet) {
                         await connectWallet();
