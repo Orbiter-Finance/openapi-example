@@ -12,6 +12,7 @@ npm run dev
 ```
 交易发送查看sendTx函数。有两种发送方式，可以使用前端钱包发送或者服务端私钥发送
 测试网支持[网络名称(内部ID)]: Görli(5)、Arbitrum(22)、Polygon(66)、Optimism(77)、zkSync Era(514)、BSC(515)、Polygon zkEVM(517)、Scroll Alpha(519)、Base(521)、Linea(522)
+API文档 https://openapi2.orbiter.finance/swagger-ui/index.html
 ```
 ### 实现过程
 ```
