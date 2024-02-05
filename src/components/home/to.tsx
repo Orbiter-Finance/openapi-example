@@ -22,9 +22,6 @@ export default function To() {
     const [routerListTargetChainFilterKey, setRouterListTargetChainFilterKey]= useRecoilState(reRouterListTargetChainFilterKey);
     const setRouterListTargetTokenFilterKey= useSetRecoilState(reRouterListTargetTokenFilterKey);
 
-    console.log("routerListSourceTokenFilterKey", routerListSourceTokenFilterKey)
-
-
     const resetTargetToeknKey = useResetRecoilState(reTargetToeknKey)
 
     const [tokenList, setTokenList] = useState<IOrbiterSelectItemType[]>([]);
@@ -38,8 +35,6 @@ export default function To() {
         const list: IRoutersExtendsType[] = routerListSourceTokenFilterKey.filter((item)=>{
             return item.tgtChain.toLocaleLowerCase() === val.toLocaleLowerCase()
         })
-
-        console.log("list", list)
 
         setRouterListTargetChainFilterKey(list)
         
@@ -60,6 +55,7 @@ export default function To() {
             value: list[0].endpoint ||""
           }))
 
+          console.log("list", list)
           setRouterListTargetTokenFilterKey(list)
   
           

@@ -29,7 +29,7 @@ export default function Amount() {
         if (selectRouteGroupKey?.endpoint && !!value && !!decimals) {
 
             const total = parseUnits(value, decimals) + parseUnits(selectRouteGroupKey.withholdingFee, decimals) + parseUnits( selectRouteGroupKey.vc, "wei")
-            const receive = parseEther(value) - parseEther(value) * parseEther(selectRouteGroupKey.tradeFee) / parseEther("1000000")
+            const receive = parseEther(value) - parseEther(value) * parseEther(selectRouteGroupKey.tradeFee) / parseEther("1000000") +  parseUnits( selectRouteGroupKey.vc, "wei")
 
             setGroup({
                 total: formatUnits(total, decimals),
