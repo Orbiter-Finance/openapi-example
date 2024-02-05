@@ -10,13 +10,13 @@ export default function From() {
     const chains = useRecoilValue(reChains);
 
     const routerListKey = useRecoilValue(reRouterListKey);
-    const [routerListSourceChainFilterKey, setRouterListSourceChainFilterKey]= useRecoilState(reRouterListSourceChainFilterKey);
-    const setRouterListSourceTokenFilterKey= useSetRecoilState(reRouterListSourceTokenFilterKey);
+    const [routerListSourceChainFilterKey, setRouterListSourceChainFilterKey] = useRecoilState(reRouterListSourceChainFilterKey);
+    const setRouterListSourceTokenFilterKey = useSetRecoilState(reRouterListSourceTokenFilterKey);
 
-    const resetSourceTokenKey = useResetRecoilState(reSourceTokenKey)
-    const resetTargetChainKey = useResetRecoilState(reTargetChainKey)
-    const resetTargetToeknKey = useResetRecoilState(reTargetToeknKey)
-    
+    const resetSourceTokenKey = useResetRecoilState(reSourceTokenKey);
+    const resetTargetChainKey = useResetRecoilState(reTargetChainKey);
+    const resetTargetToeknKey = useResetRecoilState(reTargetToeknKey);
+
     const sourceChainKey = useRecoilValue(reSourceChainKey);
 
     const [tokenList, setTokenList] = useState<IOrbiterSelectItemType[]>([]);
@@ -27,15 +27,17 @@ export default function From() {
     const tokenChangeFilter = useCallback(
         (val: string) => {
 
-            const list: IRoutersExtendsType[] = routerListSourceChainFilterKey.filter((item)=>{
-                return item.srcToken.toLocaleLowerCase() === val.toLocaleLowerCase()
-            })
+            const list: IRoutersExtendsType[] = routerListSourceChainFilterKey.filter((item) => {
+                return item.srcToken.toLocaleLowerCase() === val.toLocaleLowerCase();
+            });
 
-            setRouterListSourceTokenFilterKey(list)
-          
+            setRouterListSourceTokenFilterKey(list);
+            console.log("setRouterListSourceTokenFilterKey", val, list);
+
+
         },
         [routerListSourceChainFilterKey, setRouterListSourceTokenFilterKey],
-      )
+    );
 
     useEffect(() => {
         setSourceList(chains.map((item) => ({ label: item.name, value: item.chainId })));
@@ -50,21 +52,21 @@ export default function From() {
 
             routerListKey.forEach((item) => {
                 if (String(item.srcChain).toLocaleLowerCase() === sourceChainKey.toLocaleLowerCase()) {
-                    const flag = list.some((option)=> option.value.toLocaleLowerCase() === item.srcToken.toLocaleLowerCase())
-                    if(!flag) {
+                    const flag = list.some((option) => option.value.toLocaleLowerCase() === item.srcToken.toLocaleLowerCase());
+                    if (!flag) {
                         list = list.concat([{
                             label: item.srcSymbol,
                             value: item.srcToken
-                        }])
+                        }]);
                     }
-                    
-                    filterList = filterList.concat([item])
+
+                    filterList = filterList.concat([item]);
 
                 }
             });
 
-            setTokenList(list)
-            setRouterListSourceChainFilterKey(filterList)
+            setTokenList(list);
+            setRouterListSourceChainFilterKey(filterList);
         }
 
     }, [sourceChainKey, routerListKey, setRouterListSourceChainFilterKey]);
@@ -80,15 +82,15 @@ export default function From() {
                 tokenSelectList={tokenList}
                 chainAtomKey={reSourceChainKey}
                 chainSelectList={sourceList}
-                chainHandleChangeCall={()=>{
-                    resetSourceTokenKey()
-                    resetTargetChainKey()
-                    resetTargetToeknKey()
+                chainHandleChangeCall={() => {
+                    resetSourceTokenKey();
+                    resetTargetChainKey();
+                    resetTargetToeknKey();
                 }}
-                tokenHandleChangeCall={(val)=>{
-                    resetTargetChainKey()
-                    resetTargetToeknKey()
-                    tokenChangeFilter(val)
+                tokenHandleChangeCall={(val) => {
+                    resetTargetChainKey();
+                    resetTargetToeknKey();
+                    tokenChangeFilter(val);
                 }}
             />
         </div>

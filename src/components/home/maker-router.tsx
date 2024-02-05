@@ -25,6 +25,7 @@ export default function MakerRouter() {
                 placeholder={"Router"}
                 changeCall={(val) => {
                     const group = routerListTargetTokenFilterKey.find((item)=> item.endpoint.toLocaleLowerCase() === val.toLocaleLowerCase())
+                    console.log(group, '--group')
                     setSelectRouteGroupKey((group || {}) as IRoutersExtendsType)
                 }}
             />

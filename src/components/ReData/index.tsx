@@ -27,18 +27,43 @@ export default function ReData() {
 
       const data = await fetchRoutes();
 
-      let routerList: IRoutersExtendsType[] = data.map((item: IRouters) => {
+      let routerList: IRoutersExtendsType[] = []
+
+      data.forEach((item: IRouters) => {
 
         const line = item.line;
 
         const [_chain, coin] = line.split("-");
 
-        const [sourceSymbol, targetSymbol] = coin.split("/");
-        return ({
-          ...item,
-          srcSymbol: sourceSymbol,
-          tgtSYmbol: targetSymbol
+        const [srcSymbol, tgtSYmbol] = coin.split("/");
+
+        const endpoint = item.endpoint.toLocaleLowerCase()
+        const srcChain = item.srcChain.toLocaleLowerCase()
+        const srcToken = item.srcToken.toLocaleLowerCase()
+        const tgtChain = item.tgtChain.toLocaleLowerCase()
+        const tgtToken = item.tgtToken.toLocaleLowerCase()
+
+        const flag = routerList.some((option)=>{
+          const optionEndpoint = option.endpoint.toLocaleLowerCase()
+          const optionSrcChain = option.srcChain.toLocaleLowerCase()
+          const optionSrcToken = option.srcToken.toLocaleLowerCase()
+          const optionTgtChain = option.tgtChain.toLocaleLowerCase()
+          const optionTgtToken = option.tgtToken.toLocaleLowerCase()
+
+          return (
+            (endpoint === optionEndpoint) && (srcChain === optionSrcChain) &&
+            (srcToken === optionSrcToken) && (tgtChain === optionTgtChain) &&
+            (tgtToken === optionTgtToken)
+          )
         })
+
+        if(!flag) {
+          routerList = routerList.concat([{
+            ...item,
+            srcSymbol,
+            tgtSYmbol
+          }])
+        }
 
       });
 
