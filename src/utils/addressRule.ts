@@ -1,4 +1,4 @@
-import { STARKNET_CHAIN } from '@/constants/rpc';
+import { STARKNET_CHAIN } from "@/constants";
 
 export default function addressRule(
     chain: string,
