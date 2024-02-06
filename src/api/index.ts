@@ -1,6 +1,7 @@
 import { IRouters } from "@/Models/chain";
 import { BASE_URL } from "@/config/env";
 import axiosService from "@/lib/request";
+import { objToParams } from "@/utils/objToParams";
 
 
 export interface Result<T> {
@@ -33,9 +34,9 @@ export async function fetchChains(): Promise<any> {
     }
 }
 
-export async function fetchRoutes(): Promise<IRouters[]> {
+export async function fetchRoutes(params: any): Promise<IRouters[]> {
     try {
-        const res: Result<IRouters[]> = await axiosService.get(`${BASE_URL}/sdk/routers`, {
+        const res: Result<IRouters[]> = await axiosService.get(`${BASE_URL}/sdk/routers` + objToParams(params), {
 
         }).then((res: { data: any; }) => res.data);
         if (res.status === 'success') {

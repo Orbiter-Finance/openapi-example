@@ -32,8 +32,6 @@ export default function From() {
             });
 
             setRouterListSourceTokenFilterKey(list);
-            console.log("setRouterListSourceTokenFilterKey", val, list);
-
 
         },
         [routerListSourceChainFilterKey, setRouterListSourceTokenFilterKey],

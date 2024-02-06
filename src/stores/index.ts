@@ -1,4 +1,4 @@
-import { IRouters, IRoutersExtendsType } from "@/Models/chain";
+import { IRoutersExtendsType } from "@/Models/chain";
 import { IOrbiterSelectItemType } from "@/Models/commponets";
 import { HISTORY_KEY, TRANSFER_KEY } from "@/constants";
 import { atom } from "recoil";
@@ -80,5 +80,31 @@ export const rePageStatusKey = atom({
 
 export const reTransferHashKey = atom({
     key: 'reTransferHashKey',
+    default: ""
+});
+
+export const reGlobalDealerKey = atom({
+    key: 'reGlobalDealerKey',
+    default: ""
+});
+
+export const reGlobalContractTransferkey = atom({
+    key: 'reGlobalContractTransferkey',
+    default: false
+});
+
+export const reGlobalContractTransferDataVerifykey = atom({
+    key: 'reGlobalContractTransferDataVerifykey',
+    default: false
+});
+
+export const reGlobalContractTransferToAddresskey = atom({
+    key: 'reGlobalContractTransferToAddresskey',
+    default: ""
+});
+
+
+export const reGlobalContractAddresskey = atom({
+    key: 'reGlobalContractAddresskey',
     default: ""
 });

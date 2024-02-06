@@ -7,7 +7,7 @@ import { useRecoilValue } from 'recoil';
 import { useAccount } from 'wagmi';
 import Web3, { HttpProvider } from 'web3';
 
-export default function useBalance() {
+export default function useAccountInfo() {
 
     const chains = useRecoilValue(reChains);
     const chainsWallet = useRecoilValue(reChainsWallet);
@@ -18,6 +18,7 @@ export default function useBalance() {
     const { address } = useAccount();
 
     const [balance, setBalance] = useState("0");
+    const [nonce, setNonce] = useState("0");
 
     const getBalance = useCallback(
         async () => {
@@ -63,6 +64,29 @@ export default function useBalance() {
         [address, chainsWallet, sourceChainKey, sourceTokenKey.value, chains],
     );
 
+    const getNoce = useCallback(
+        async () => {
+            if (address && chainsWallet.length && !!sourceChainKey) {
+
+                try {
+
+                    const group = chainsWallet.find((item) => String(item?.id).toLocaleLowerCase() === sourceChainKey.toLocaleLowerCase());
+                                const web3 = new Web3(
+                        group?.rpcUrls?.default?.http?.[0] || ""
+                    );
+
+                    const n = await web3.eth.getTransactionCount(address, "pending")
+                    setNonce(Number(formatEther(n)) === 0 ? "1" : formatUnits(n, "wei"))
+                   
+                } catch (error) {
+
+                    setNonce("1")
+
+                }
+            }
+        },
+        [address, chainsWallet, sourceChainKey],
+    );
 
     useEffect(() => {
         if (address && !!sourceChainKey && !!sourceTokenKey.value && chainsWallet.length && !!chains.length) {
@@ -71,9 +95,16 @@ export default function useBalance() {
 
     }, [address, getBalance, sourceTokenKey, sourceChainKey, chainsWallet, chains]);
 
+    useEffect(() => {
+        if (address && !!sourceChainKey) {
+            getNoce();
+        }
 
+    }, [address, getNoce, sourceChainKey]);
+    
     return ({
-        balance
+        balance,
+        nonce
     });
 
 }

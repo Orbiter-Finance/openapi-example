@@ -1,8 +1,8 @@
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { ENTER_NUMBER_RULE, ENTER_NUMBER_RULE2 } from '@/constants/rule';
-import useBalance from '@/hooks/useBalance';
-import { reChains, reSelectRouteGroupKey, reTransferAmount } from '@/stores';
+import useAccountInfo from '@/hooks/useAccountInfo';
+import { reChains, reGlobalContractTransferDataVerifykey, reSelectRouteGroupKey, reTransferAmount } from '@/stores';
 import { decimalNum } from '@/utils/decimalNum';
 import { formatEther, formatUnits, parseEther, parseUnits } from 'ethers';
 import React, { useEffect, useState } from 'react';
@@ -12,9 +12,11 @@ export default function Amount() {
 
     const chains = useRecoilValue(reChains);
 
-    const { balance } = useBalance();
+    const { balance, nonce } = useAccountInfo();
 
     const [value, setValue] = useRecoilState(reTransferAmount);
+
+    const globalContractTransferDataVerifykey = useRecoilValue(reGlobalContractTransferDataVerifykey)
 
     const selectRouteGroupKey = useRecoilValue(reSelectRouteGroupKey);
 
@@ -28,21 +30,27 @@ export default function Amount() {
     useEffect(() => {
         if (selectRouteGroupKey?.endpoint && !!value && !!decimals) {
 
-            const total = parseUnits(value, decimals) + parseUnits(selectRouteGroupKey.withholdingFee, decimals) + parseUnits( selectRouteGroupKey.vc, "wei")
-            const receive = parseEther(value) - parseEther(value) * parseEther(selectRouteGroupKey.tradeFee) / parseEther("1000000") +  parseUnits( selectRouteGroupKey.vc, "wei")
+            const total = parseUnits(value, decimals) + parseUnits(selectRouteGroupKey.withholdingFee, decimals) + parseUnits( 
+                globalContractTransferDataVerifykey ? "0" : selectRouteGroupKey.vc, "wei")
+            const receive = parseEther(value) - parseEther(value) * parseEther(selectRouteGroupKey.tradeFee) / parseEther("1000000") +  parseUnits( nonce, "wei")
+
 
             setGroup({
                 total: formatUnits(total, decimals),
                 receive: formatEther(receive)
             })
         }
-    }, [selectRouteGroupKey, value, decimals]);
+    }, [selectRouteGroupKey, value, decimals, nonce, globalContractTransferDataVerifykey]);
 
     useEffect(() => {
-        if (selectRouteGroupKey?.endpoint && chains.length) {
-            const decimals = chains.find((item) => String(item?.chainId)?.toLocaleLowerCase() === selectRouteGroupKey?.srcChain?.toLocaleLowerCase())?.tokens?.find((option: any) =>
-                String(option?.address) === selectRouteGroupKey?.srcToken?.toLocaleLowerCase()
+        if (selectRouteGroupKey?.endpoint && !!chains.length) {
+
+            const tokens =  chains.find((item) => String(item?.chainId)?.toLocaleLowerCase() === selectRouteGroupKey?.srcChain?.toLocaleLowerCase())?.tokens
+
+            const decimals = tokens.find((option: any) =>
+                String(option?.address).toLocaleLowerCase() === selectRouteGroupKey?.srcToken?.toLocaleLowerCase()
             )?.decimals;
+
             setDecimals(decimals);
         }
 

@@ -34,8 +34,6 @@ export default function To() {
             });
 
             setRouterListTargetChainFilterKey(list);
-            console.log("setRouterListTargetChainFilterKey", val, list);
-
 
         },
         [routerListSourceTokenFilterKey, setRouterListTargetChainFilterKey],
@@ -53,8 +51,6 @@ export default function To() {
                 label: list[0].endpoint || "",
                 value: list[0].endpoint || ""
             }));
-
-            console.log("setRouterListTargetTokenFilterKey", val, list);
 
             setRouterListTargetTokenFilterKey(list);
 

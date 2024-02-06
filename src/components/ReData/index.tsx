@@ -1,8 +1,8 @@
 "use client";
 
 import { useCallback, useEffect } from 'react';
-import { useSetRecoilState } from 'recoil';
-import { reChains, reRouterListKey} from '@/stores';
+import { useRecoilValue, useSetRecoilState } from 'recoil';
+import { reChains, reGlobalDealerKey, reRouterListKey} from '@/stores';
 import { fetchChains, fetchRoutes } from '@/api';
 import { useAccount, useChainId } from 'wagmi';
 import { IRouters, IRoutersExtendsType } from '@/Models/chain';
@@ -11,6 +11,9 @@ export default function ReData() {
 
   const setChains = useSetRecoilState(reChains);
   const setRouterListKey = useSetRecoilState(reRouterListKey);
+
+  const globalDealerKey = useRecoilValue(reGlobalDealerKey);
+
 
   const getData = useCallback(
     async () => {
@@ -25,7 +28,9 @@ export default function ReData() {
   const getRoutes = useCallback(
     async () => {
 
-      const data = await fetchRoutes();
+      const data = await fetchRoutes(
+        globalDealerKey ? ({dealerId: globalDealerKey.toLocaleLowerCase()}):{}
+      );
 
       let routerList: IRoutersExtendsType[] = []
 
@@ -69,7 +74,7 @@ export default function ReData() {
 
       setRouterListKey(routerList)
     },
-    [setRouterListKey],
+    [setRouterListKey, globalDealerKey],
   );
 
 
@@ -83,7 +88,7 @@ export default function ReData() {
     return () => {
       clearTimeout(timer);
     };
-  }, [getData, getRoutes]);
+  }, [getData, getRoutes, globalDealerKey]);
 
   return (
     null

@@ -7,6 +7,7 @@ import To from './to';
 import MakerRouter from './maker-router';
 import Amount from './amount';
 import Send from './send';
+import ContractTransferSwitch from './contract-transfer-switch';
 
 export default function Transfer() {
 
@@ -22,6 +23,7 @@ export default function Transfer() {
                 <To />
             </div>
             <MakerRouter />
+            <ContractTransferSwitch />
             <Amount />
             <Send />
         </div>
