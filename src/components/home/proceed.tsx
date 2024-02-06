@@ -42,8 +42,8 @@ export default function Proceed() {
     };
   }, [getData, transferHashKey, time]);
 
-  const sourceChainName = chains?.find((item) => String(item?.chainId).toLocaleLowerCase() === String(data?.chainId))?.name;
-  const targetChainName = chains?.find((item) => String(item?.chainId).toLocaleLowerCase() === String(data?.targetChain))?.name;
+  const sourceChainName = chains?.find((item) => String(item?.chainId).toLocaleLowerCase() === String(selectRouteGroupKey?.srcChain))?.name;
+  const targetChainName = chains?.find((item) => String(item?.chainId).toLocaleLowerCase() === String(selectRouteGroupKey?.tgtChain))?.name;
 
   return (
     <div className='w-full'>
