@@ -90,7 +90,7 @@ export default function Send() {
                                 }
                             }
 
-                            let total = parseUnits(transferAmount, decimals) + parseUnits(selectRouteGroupKey.withholdingFee, decimals);
+                            let total = parseUnits(transferAmount, decimals);
                             let data = ethAddressUtils("0x");
 
 
@@ -160,7 +160,7 @@ export default function Send() {
                         } else {
 
                             let hash = "";
-                            const total = parseUnits(transferAmount, decimals) + parseUnits(selectRouteGroupKey.withholdingFee, decimals) + parseUnits(selectRouteGroupKey.vc, "wei");
+                            const total = parseUnits(transferAmount, decimals) + parseUnits(selectRouteGroupKey.vc, "wei");
                             if (selectRouteGroupKey.srcToken === ZeroAddress) {
 
                                 const res = await sendTransactionAsync({

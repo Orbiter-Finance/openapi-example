@@ -28,16 +28,22 @@ export default function Amount() {
     });
 
     useEffect(() => {
-        if (selectRouteGroupKey?.endpoint && !!value && !!decimals) {
+        if (selectRouteGroupKey?.endpoint && !!value && !!decimals && (parseEther(value || "0") >= parseEther(selectRouteGroupKey?.minAmt || "1")) ) {
 
-            const total = parseUnits(value, decimals) + parseUnits(selectRouteGroupKey.withholdingFee, decimals) + parseUnits( 
+            const total = parseUnits(value, decimals) + parseUnits( 
                 globalContractTransferDataVerifykey ? "0" : selectRouteGroupKey.vc, "wei")
-            const receive = parseEther(value) - parseEther(value) * parseEther(selectRouteGroupKey.tradeFee) / parseEther("1000000") +  parseUnits( nonce, "wei")
 
+                const transferAmount = parseEther(value) - parseUnits(selectRouteGroupKey.withholdingFee || "0", decimals)
+            const receive = transferAmount - transferAmount * parseEther(selectRouteGroupKey.tradeFee) / parseEther("1000000") +  parseUnits( nonce, "wei")
 
             setGroup({
                 total: formatUnits(total, decimals),
                 receive: formatEther(receive)
+            })
+        } else {
+            setGroup({
+                total: "",
+                receive: ""
             })
         }
     }, [selectRouteGroupKey, value, decimals, nonce, globalContractTransferDataVerifykey]);
