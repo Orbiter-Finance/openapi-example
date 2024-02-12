@@ -3,7 +3,6 @@ import { Orbiter_V3_ABI_EVM } from '@/abi/evm';
 import { reGlobalContractAddresskey, reSelectRouteGroupKey } from '@/stores';
 import ethAddressUtils from '@/utils/ethAddressUtils';
 import { ZeroAddress } from 'ethers';
-import React from 'react'
 import { useRecoilValue } from 'recoil';
 import { useContractWrite } from 'wagmi';
 

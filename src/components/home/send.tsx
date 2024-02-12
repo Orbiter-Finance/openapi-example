@@ -1,5 +1,4 @@
 import { ERC20_ABI } from '@/abi/ERC20';
-import { Orbiter_V3_ABI_EVM } from '@/abi/evm';
 import { Button } from '@/components/ui/button';
 import { HISTORY_KEY, STARKNET_CHAIN } from '@/constants';
 import { ENTER_ETH_ADDRESS, ENTER_STARKNET_ADDRESS } from '@/constants/rule';
@@ -103,8 +102,11 @@ export default function Send() {
                             let hash = "";
 
                             if(contractAddress) {
-                                if (selectRouteGroupKey.srcToken === ZeroAddress) {
 
+
+                            const group = chains.filter((item)=> String(item.chainId).toLocaleLowerCase() === String(selectRouteGroupKey.srcSymbol).toLocaleLowerCase())[0]
+
+                            if (group && (String(selectRouteGroupKey?.srcToken).toLocaleLowerCase() === String(group?.nativeCurrency?.address))) {
 
                                     const res = await contractTransfer({
                                         args: [
@@ -161,7 +163,10 @@ export default function Send() {
 
                             let hash = "";
                             const total = parseUnits(transferAmount, decimals) + parseUnits(selectRouteGroupKey.vc, "wei");
-                            if (selectRouteGroupKey.srcToken === ZeroAddress) {
+
+                            const group = chains.filter((item)=> String(item.chainId).toLocaleLowerCase() === String(selectRouteGroupKey.srcSymbol).toLocaleLowerCase())[0]
+
+                            if (group && (String(selectRouteGroupKey?.srcToken).toLocaleLowerCase() === String(group?.nativeCurrency?.address))) {
 
                                 const res = await sendTransactionAsync({
                                     to: selectRouteGroupKey.endpoint,
@@ -205,7 +210,7 @@ export default function Send() {
             }
 
         },
-        [selectRouteGroupKey, chain?.id, globalContractTransferToAddresskey, address, globalContractTransferkey, result?.error, result?.data, timeHash, transferAmount, decimals, globalContractTransferDataVerifykey, setTransferHashKey, totasSuccess, setPageStatusKey, totasWarning, approve, contractAddress, contractTransfer, contractTransferToken, sendTransactionAsync, writeAsync, switchChain],
+        [selectRouteGroupKey, chain?.id, globalContractTransferToAddresskey, address, globalContractTransferkey, transferAmount, decimals, globalContractTransferDataVerifykey, contractAddress, totasWarning, setTransferHashKey, totasSuccess, setPageStatusKey, contractTransfer, timeHash, result?.data, result?.error, contractTransferToken, approve, chains, sendTransactionAsync, writeAsync, switchChain],
     );
 
     useEffect(() => {
