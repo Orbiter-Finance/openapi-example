@@ -48,7 +48,6 @@ export default function useAccountInfo() {
                         });
 
                         res = web3.eth.abi.decodeParameters(
-                            // 返回的参数类型
                             ["uint256"],
                             result || "")[0] || BigInt(0);
 
