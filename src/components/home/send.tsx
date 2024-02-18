@@ -101,42 +101,44 @@ export default function Send() {
 
                             let hash = "";
 
-                            if(contractAddress) {
+                            if (contractAddress) {
 
 
-                            const group = chains.filter((item)=> String(item.chainId).toLocaleLowerCase() === String(selectRouteGroupKey.srcSymbol).toLocaleLowerCase())[0]
+                                const group = chains.filter((item) => String(item.chainId).toLocaleLowerCase() === String(selectRouteGroupKey.srcChain).toLocaleLowerCase())[0];
 
-                            if (group && (String(selectRouteGroupKey?.srcToken).toLocaleLowerCase() === String(group?.nativeCurrency?.address))) {
+                                console.log("group", chains, group, selectRouteGroupKey)
+
+                                if (group && (String(selectRouteGroupKey?.srcToken).toLocaleLowerCase() === String(group?.nativeCurrency?.address))) {
 
                                     const res = await contractTransfer({
                                         args: [
                                             selectRouteGroupKey.endpoint,
                                             data
-    
                                         ],
                                         value: total
                                     });
-    
+
                                     hash = res?.hash || "";
-    
+
                                 } else {
-    
+
                                     if (!timeHash && ((result?.data || BigInt(0)) as any) < total) {
+                                        console.log("contractAddress", timeHash, contractAddress);
                                         const res = await approve({
                                             args: [contractAddress, total]
                                         });
-    
+
                                         setTimeHash(+new Date());
-    
+
                                         return;
                                     }
-    
-    
+
+
                                     if (result?.error) {
                                         totasWarning("Allowance Error");
                                         return;
                                     }
-    
+
                                     const res = await contractTransferToken({
                                         args: [
                                             selectRouteGroupKey.srcToken,
@@ -146,25 +148,25 @@ export default function Send() {
                                         ]
                                     });
                                     hash = res?.hash || "";
-    
+
                                 }
                                 setTimeHash(0);
-    
+
                                 setTransferHashKey(hash);
-    
+
                                 totasSuccess("Transfer Hash: " + hash);
                                 setPageStatusKey(HISTORY_KEY);
                             } else {
-                                totasWarning("Not Contract")
+                                totasWarning("Not Contract");
                             }
 
-                           
+
                         } else {
 
                             let hash = "";
                             const total = parseUnits(transferAmount, decimals) + parseUnits(selectRouteGroupKey.vc, "wei");
 
-                            const group = chains.filter((item)=> String(item.chainId).toLocaleLowerCase() === String(selectRouteGroupKey.srcSymbol).toLocaleLowerCase())[0]
+                            const group = chains.filter((item) => String(item.chainId).toLocaleLowerCase() === String(selectRouteGroupKey.srcChain).toLocaleLowerCase())[0];
 
                             if (group && (String(selectRouteGroupKey?.srcToken).toLocaleLowerCase() === String(group?.nativeCurrency?.address))) {
 
