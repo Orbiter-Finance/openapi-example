@@ -1,6 +1,8 @@
-export default function shortenAddress(address: string, len = 4) {
+export default function shortenAddress(address?: string, len = 4) {
 
-    if (address?.length < 11)
-        return address;
-    return `${address?.substring(0, len)}...${address?.substring(address?.length - len, address?.length)}`;
+    const str = address || ""
+
+    if (str?.length < 11)
+        return str;
+    return `${str?.substring(0, len)}...${str?.substring(str?.length - len, str?.length)}`;
 }

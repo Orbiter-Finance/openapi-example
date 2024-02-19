@@ -36,6 +36,7 @@
     "@wagmi/core": "1.4.12",
     "axios": "^1.6.5",
     "axios-retry": "^4.0.0",
+    "bignumber.js": "^9.1.2",
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.1.0",
     "cmdk": "^0.2.0",

@@ -4,6 +4,7 @@ import React from 'react';
 import { ModeToggleButton } from '@/components/ui/mode-toggle-btn';
 import { ConnectButton } from '@rainbow-me/rainbowkit';
 import { useRouter } from 'next/navigation';
+import ConnectWallet from '@/components/ConnectWallet';
 export default function Header() {
 
   const router = useRouter()
@@ -18,7 +19,7 @@ export default function Header() {
       </label>
 
       <div className="flex flex-1 items-center justify-end lg:space-x-4">
-        <ConnectButton />
+        <ConnectWallet />
         <div className='ml-2'>
 
         <ModeToggleButton/>

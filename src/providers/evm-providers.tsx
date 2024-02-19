@@ -4,7 +4,7 @@ import { ReactNode, useEffect, useState } from "react";
 
 import { chainsJson } from "@/constants/chainLink";
 import { connectorsForWallets, RainbowKitProvider } from "@rainbow-me/rainbowkit";
-import { argentWallet, trustWallet, bitgetWallet, metaMaskWallet, walletConnectWallet, rainbowWallet } from "@rainbow-me/rainbowkit/wallets";
+import { argentWallet, trustWallet, bitgetWallet, metaMaskWallet, walletConnectWallet, rainbowWallet, coinbaseWallet } from "@rainbow-me/rainbowkit/wallets";
 import { configureChains, createConfig, mainnet, WagmiConfig } from "wagmi";
 import { publicProvider } from "wagmi/providers/public";
 import { useRecoilValue, useSetRecoilState } from "recoil";
@@ -36,6 +36,7 @@ export function EvmProvider({ children }: { children: ReactNode; }) {
       wallets: [
         metaMaskWallet({ projectId, chains }),
         walletConnectWallet({ projectId, chains }),
+        coinbaseWallet({ appName: "orbiter",  chains }),
       ],
     },
     {

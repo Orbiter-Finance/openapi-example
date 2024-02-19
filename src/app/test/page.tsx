@@ -6,52 +6,37 @@ import React from 'react';
 
 import Image from "next/image";
 import useStarknetAccountInfo from '@/hooks/useStarknetAccountInfo';
+import useEvmAccountInfo from '@/hooks/useEvmAccountInfo';
+import shortenAddress from '@/utils/shortenAddress';
 
 export default function Page() {
 
-  const { address: starknetAddress,
+  const { account, address: starknetAddress,
     data: starknetData,
-    chain } = useStarknetAccountInfo();
+    chain, nonce: starknetNonce } = useStarknetAccountInfo();
 
-  const { address } = useAccount();
+    const info = useEvmAccountInfo()
 
   const { connectAsync, connectors } = useConnect();
-  const { data } = useBalance({
-    address
-  });
+
   const { disconnectAsync } = useDisconnect();
 
 
-  console.log("connectors", connectors, data);
+  console.log("starknetNonce", starknetNonce);
+  console.log("account", account);
+  console.log("info", info);
+  console.log("connectors", connectors, starknetData);
 
   console.log("starknetAddress", starknetAddress, starknetData, chain);
 
   return (
     <div>
-      {
-        connectors.map((item, index) => <div className='flex' key={item.id} onClick={async (event) => {
-          const res = await connectAsync({
-            connector: item
-          });
-
-          console.log("connectAsync", res);
-
-        }}>
-          <Image className='mr-4' width={24} height={24} src={item?.icon?.dark || ""} alt={''} />
-          {item?.name}</div>)
-      }
-      <div onClick={async (event) => {
-        const res = await connectAsync({
-          connector: connectors[0]
-        });
-
-        console.log("connectAsync", res);
-
-      }}>connect</div>
       <div onClick={async (event) => {
         const res = await disconnectAsync();
       }}>disconnect</div>
-      <div>{address}</div>
+      <div>{starknetData?.formatted} {starknetData?.symbol}</div>
+      <div>{shortenAddress(starknetAddress)}</div>
+      <div>{starknetNonce}</div>
     </div>
   );
 }

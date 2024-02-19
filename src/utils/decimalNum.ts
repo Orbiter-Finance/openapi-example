@@ -1,12 +1,15 @@
-import { BigNumberish } from "ethers";
+
+import { BigNumber } from "bignumber.js";
 
 const DEC = ["", "K", "M", "B", "T"]
 
-export const decimalNum = (num: string | number | BigNumberish = 0, decimal?: string | number, delimiter = "", currencySymbol = "") => {
+
+
+export const decimalNum = (num: string | number = 0, decimal?: string | number, delimiter = "", currencySymbol = "") => {
 
     decimal ??= 2;
 
-    const big = num ? Number(num.toString()).toFixed(18) : "0";
+    const big = num ? new BigNumber(num).toFixed() : "0";
 
     const negativeNChar = Number(big) < 0 ? "-" : "";
 
@@ -35,7 +38,7 @@ export const decimalNum = (num: string | number | BigNumberish = 0, decimal?: st
 };
 
 
-export const decimalNumRedundancy = (num: string | number | BigNumberish = 0, decimal?: string | number, delimiter = "", currencySymbol = "") => {
+export const decimalNumRedundancy = (num: string | number = 0, decimal?: string | number, delimiter = "", currencySymbol = "") => {
 
     decimal ??= 2;
 
@@ -63,7 +66,7 @@ export const decimalNumRedundancy = (num: string | number | BigNumberish = 0, de
 };
 
 
-export const decimalNumTh = (num: string | number | BigNumberish = 0, decimal?: string | number, delimiter = "", currencySymbol = "") => {
+export const decimalNumTh = (num: string | number = 0, decimal?: string | number, delimiter = "", currencySymbol = "") => {
 
 
     const val = decimalNum(num, decimal, delimiter)
