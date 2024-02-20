@@ -27,16 +27,10 @@ export default function ConnectWallet() {
   const starknetAccountInfo = useStarknetAccountInfo();
   const [starknetWalletId, setStarknetWalletId] = useRecoilState(reGlobalStarknetWalletId);
 
-
   const [show, setShow] = useRecoilState(reGlobalStarknetWalletDialog);
 
   const [walletOpen, setWalletOpen] = useState(false);
   const [infoOpen, setInfoOpen] = useState(false);
-
-  console.log("starknetWalletId", starknetWalletId);
-  console.log("connector", EvmAccountInfo?.connector);
-
-  console.log("EvmAccountInfo?.balance", EvmAccountInfo?.balance);
 
   return (<div>
 

@@ -26,7 +26,6 @@ export default function useStarknetAccountInfo() {
         async () => {
             if (account) {
                 const n = await account.getNonce();
-                console.log("n", n);
                 setNonce(formatUnits(n, "wei"));
             }
 

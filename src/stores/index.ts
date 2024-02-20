@@ -98,6 +98,11 @@ export const reGlobalContractTransferDataVerifykey = atom({
     default: false
 });
 
+export const reGlobalContractTransferToAddressStatusKey = atom({
+    key: 'reGlobalContractTransferToAddressStatusKey',
+    default: false
+});
+
 export const reGlobalContractTransferToAddresskey = atom({
     key: 'reGlobalContractTransferToAddresskey',
     default: ""

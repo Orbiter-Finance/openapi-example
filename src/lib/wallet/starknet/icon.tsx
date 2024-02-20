@@ -4,7 +4,6 @@ import { Coins, LucideProps } from "lucide-react";
 import { JSX } from "react";
 
 export const ResolveStarknetWalletIcon = ({ connector }: { connector: string }) => {
-    console.log("connector222222", connector)
     switch (connector?.toLowerCase()) {
         case KnownKonnectors.ArgentX:
             return ArgentX
