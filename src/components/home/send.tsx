@@ -58,7 +58,7 @@ export default function Send() {
         abi: ERC20_ABI,
         address: !!selectRouteGroupKey?.srcToken && (selectRouteGroupKey?.srcToken !== ZeroAddress) ? ethAddressUtils(selectRouteGroupKey?.srcToken || "") : ethAddressUtils(ZeroAddress),
         functionName: "allowance",
-        args: [address || "0x", contractAddress || "0x"]
+        args: [address || "", contractAddress || ""]
     });
 
 

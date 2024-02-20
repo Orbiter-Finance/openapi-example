@@ -12,7 +12,7 @@ import shortenAddress from '@/utils/shortenAddress';
 export default function Page() {
 
   const { account, address: starknetAddress,
-    data: starknetData,
+    balance: starknetData,
     chain, nonce: starknetNonce } = useStarknetAccountInfo();
 
     const info = useEvmAccountInfo()
@@ -34,7 +34,7 @@ export default function Page() {
       <div onClick={async (event) => {
         const res = await disconnectAsync();
       }}>disconnect</div>
-      <div>{starknetData?.formatted} {starknetData?.symbol}</div>
+      <div>{starknetData?.data?.formatted} {starknetData?.data?.symbol}</div>
       <div>{shortenAddress(starknetAddress)}</div>
       <div>{starknetNonce}</div>
     </div>
