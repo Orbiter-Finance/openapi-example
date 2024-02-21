@@ -31,20 +31,26 @@ export default function useTransfer() {
     functionName: "transferToken"
   });
 
-  const { writeAsync: starknetApprove } = useStarknetContractWrite({
-    abis: [STARKNET_ERC20_ABI],
+  const { writeAsync: starknetApproveAndTransferToken } = useStarknetContractWrite({
+    abis: [STARKNET_ERC20_ABI, Orbiter_V3_ABI_STARKNET],
     calls: [{
       contractAddress: selectRouteGroupKey?.srcToken || "",
-      entrypoint: "approve"
-    }]
+      entrypoint: "approve",
+      calldata: []
+    }, {
+      contractAddress: contractAddress || "",
+      entrypoint: "transferERC20",
+      calldata: []
+    }],
   });
 
   const { writeAsync: starknetTransferToken } = useStarknetContractWrite({
     abis: [Orbiter_V3_ABI_STARKNET],
     calls: [{
       contractAddress: contractAddress || "",
-      entrypoint: "transferERC20"
-    }]
+      entrypoint: "transferERC20",
+      calldata: []
+    }],
   });
 
 
@@ -52,7 +58,7 @@ export default function useTransfer() {
     approve,
     contractTransfer,
     contractTransferToken,
-    starknetApprove,
+    starknetApproveAndTransferToken,
     starknetTransferToken
   });
 }

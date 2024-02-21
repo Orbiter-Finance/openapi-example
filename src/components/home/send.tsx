@@ -1,6 +1,7 @@
 import { ERC20_ABI, STARKNET_ERC20_ABI } from '@/abi/ERC20';
+import { Orbiter_V3_ABI_STARKNET_GOERLI, Orbiter_V3_ABI_EVM, Orbiter_V3_ABI_STARKNET } from '@/abi/evm';
 import { Button } from '@/components/ui/button';
-import { HISTORY_KEY, STARKNET_CHAIN } from '@/constants';
+import { HISTORY_KEY, SN_GOERLI, SN_MAIN, STARKNET_CHAIN } from '@/constants';
 import { ENTER_ETH_ADDRESS, ENTER_STARKNET_ADDRESS } from '@/constants/rule';
 import useAccountInfo from '@/hooks/useAccountInfo';
 import useEvmAccountInfo from '@/hooks/useEvmAccountInfo';
@@ -12,11 +13,12 @@ import { reChains, reGlobalContractAddresskey, reGlobalContractTransferDataVerif
 import { reGlobalStarknetWalletDialog } from '@/stores/wallet';
 import ethAddressUtils from '@/utils/ethAddressUtils';
 import { useConnectModal } from '@rainbow-me/rainbowkit';
-import { useContractRead as useStarknetContractRead } from '@starknet-react/core';
+import { useProvider, useContractRead as useStarknetContractRead } from '@starknet-react/core';
 import { ZeroAddress, parseEther, parseUnits } from 'ethers';
 import React, { useCallback, useEffect, useState } from 'react';
 import { useRecoilState, useRecoilValue, useSetRecoilState } from 'recoil';
-import { useAccount, useContractRead, useContractWrite, useNetwork, useSendTransaction } from 'wagmi';
+import { useContractRead, useContractWrite, useSendTransaction } from 'wagmi';
+import { CallData, Contract, shortString, uint256 } from 'starknet';
 import Web3 from 'web3';
 
 export default function Send() {
@@ -28,6 +30,8 @@ export default function Send() {
     const { balance } = useAccountInfo();
 
     const StarknetAccountInfo = useStarknetAccountInfo();
+    const { provider } = useProvider();
+
     const EvmAccountInfo = useEvmAccountInfo();
 
     const chains = useRecoilValue(reChains);
@@ -41,7 +45,7 @@ export default function Send() {
     const [timeHash, setTimeHash] = useState(0);
 
     const [decimals, setDecimals] = useState(0);
-    const { approve, contractTransfer, contractTransferToken, starknetApprove, starknetTransferToken } = useTransfer();
+    const { approve, contractTransfer, contractTransferToken, starknetApproveAndTransferToken, starknetTransferToken } = useTransfer();
     const [contractAddress, setContractAddress] = useRecoilState(reGlobalContractAddresskey);
     const { switchChain } = useSwitchChain();
 
@@ -215,35 +219,49 @@ export default function Send() {
                     } else {
 
                         if (isStarknet) {
-                            if (StarknetAccountInfo.chain?.network?.toLocaleLowerCase() === "mainnet") {
+                            const netWork = (StarknetAccountInfo?.chain?.network || "").toLocaleLowerCase();
+                            const isMainnet = netWork.includes("mainnet");
+                            const isgoerli = netWork.includes("goerli");
+                            const chain = selectRouteGroupKey.srcChain || "";
+                            const chainName = chain.toLocaleLowerCase() || "";
 
-                                if (!timeHash && (((starknetResult?.data as any)?.remaining?.low || BigInt(0)) as any) < total) {
-                                    console.log("contractAddress", timeHash, contractAddress);
-                                    const res = await starknetApprove({
-                                        calls: [{
-                                            contractAddress: selectRouteGroupKey.srcToken,
-                                            calldata: [contractAddress, total],
-                                            entrypoint: "approve"
-                                        }]
-                                    });
+                            if ((isMainnet && (chainName === SN_MAIN.toLocaleLowerCase())) || (
+                                isgoerli && (chain.toLocaleLowerCase() === SN_GOERLI.toLocaleLowerCase())
+                            )) {
+
+                                const shortData = data !== "0x" ? shortString.splitLongString(data) : ["0x0"];
+                                const tokenContract = new Contract(STARKNET_ERC20_ABI, selectRouteGroupKey.srcToken, provider);
+                                const starknetTransferContract = new Contract(Orbiter_V3_ABI_STARKNET, contractAddress, provider);
+
+                                const approveTxCall = tokenContract.populate('approve', [
+                                    contractAddress,
+                                    uint256.bnToUint256(total)
+                                ]);
+
+                                const starknetTransferTxCall = starknetTransferContract.populate('transferERC20', [
+                                    selectRouteGroupKey.srcToken,
+                                    selectRouteGroupKey.endpoint,
+                                    uint256.bnToUint256(total),
+                                    // shortData.length,
+                                    shortData
+                                ]);
+
+                                if ((((starknetResult?.data as any)?.remaining?.low || BigInt(0)) as any) < total) {
+
+                                    const res = await StarknetAccountInfo.account?.execute([
+                                        approveTxCall,
+                                        starknetTransferTxCall
+                                    ]);
 
                                     setTimeHash(+new Date());
 
                                     return;
                                 } else {
 
-                                    const res = await starknetTransferToken({
-                                        calls: [{
-                                            contractAddress,
-                                            calldata: [
-                                                selectRouteGroupKey.srcToken,
-                                                selectRouteGroupKey.endpoint,
-                                                total,
-                                                data
-                                            ],
-                                            entrypoint: "transferERC20"
-                                        }]
-                                    });
+                                    const res = await StarknetAccountInfo.account?.execute([
+                                        starknetTransferTxCall
+                                    ]);
+
                                     hash = res?.transaction_hash || "";
 
                                     setTimeHash(0);
@@ -266,7 +284,7 @@ export default function Send() {
             }
 
         },
-        [selectRouteGroupKey, globalContractTransferToAddresskey, EvmAccountInfo, transferAmount, decimals, globalContractTransferDataVerifykey, contractAddress, globalContractTransferkey, chains, setTransferHashKey, totasSuccess, setPageStatusKey, totasWarning, contractTransfer, timeHash, result, contractTransferToken, approve, sendTransactionAsync, writeAsync, switchChain, StarknetAccountInfo, starknetResult, starknetApprove, starknetTransferToken],
+        [selectRouteGroupKey, provider, globalContractTransferToAddresskey, EvmAccountInfo, transferAmount, decimals, globalContractTransferDataVerifykey, contractAddress, globalContractTransferkey, chains, setTransferHashKey, totasSuccess, setPageStatusKey, totasWarning, contractTransfer, timeHash, result, contractTransferToken, approve, sendTransactionAsync, writeAsync, switchChain, StarknetAccountInfo, starknetResult, starknetTransferToken],
     );
 
     useEffect(() => {
@@ -297,15 +315,17 @@ export default function Send() {
 
     return (
         <div className='w-full mt-5'>
-            <Button disabled={ (isStarknet ? !!StarknetAccountInfo.address : !!EvmAccountInfo.address) ? !(parseEther(transferAmount || "0") > 0) || !selectRouteGroupKey?.endpoint ||
+            <Button disabled={(isStarknet ? !!StarknetAccountInfo.address : !!EvmAccountInfo.address) ? !(parseEther(transferAmount || "0") > 0) || !selectRouteGroupKey?.endpoint ||
                 (Number(selectRouteGroupKey?.maxAmt) < Number(transferAmount)) ||
-                (Number(selectRouteGroupKey?.minAmt) > Number(transferAmount)) ||
-                (Number(balance) < Number(transferAmount)) : false
+                (Number(selectRouteGroupKey?.minAmt) > Number(transferAmount))
+                //  ||
+                // (Number(balance) < Number(transferAmount)) 
+                : false
             } className='w-full' onClick={(event) => {
                 event.stopPropagation();
                 if (isStarknet ? !!StarknetAccountInfo.address : !!EvmAccountInfo.address) {
                     if ((parseEther(transferAmount || "0") > 0) && !!selectRouteGroupKey?.endpoint) {
-                        if ((Number(balance) >= Number(transferAmount))) {
+                        // if ((Number(balance) >= Number(transferAmount))) {
                             if ((Number(selectRouteGroupKey.maxAmt) >= Number(transferAmount)) &&
                                 (Number(selectRouteGroupKey.minAmt) <= Number(transferAmount))
                             ) {
@@ -313,9 +333,9 @@ export default function Send() {
                             } else {
                                 totasWarning("Balance Insufficient");
                             }
-                        } else {
-                            totasWarning("Amount out of range");
-                        }
+                        // } else {
+                        //     totasWarning("Amount out of range");
+                        // }
 
                     }
                 } else {
@@ -331,9 +351,9 @@ export default function Send() {
                         (parseEther(transferAmount || "0") > 0) ? (
                             (Number(selectRouteGroupKey?.maxAmt) >= Number(transferAmount)) ? (
                                 (Number(selectRouteGroupKey?.minAmt) <= Number(transferAmount)) ? (
-                                    ((Number(balance) >= Number(transferAmount))) ? (
+                                    // ((Number(balance) >= Number(transferAmount))) ? (
                                         "Send"
-                                    ) : "Balance Insufficient"
+                                    // ) : "Balance Insufficient"
                                 ) : `Amount out of range, min: ${selectRouteGroupKey?.minAmt}`
                             ) : `Amount out of range, max: ${selectRouteGroupKey?.maxAmt}`
                         ) : "Enter Amount"

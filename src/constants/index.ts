@@ -34,7 +34,11 @@ export const TIME_INTERVAL = DAY_TIME_STAMP * 90
 export const MAKER_ADDRESSES = (process.env.NEXT_PUBLIC_MAKER_ADDRESSES?.split(",") || []).map((item)=> item.toLocaleLowerCase())
 export const WHITE_MAKER_ADDRESSES = (process.env.NEXT_PUBLIC_WHITE_MAKER_ADDRESSES?.split(",") || []).map((item)=> item.toLocaleLowerCase())
 
-export const STARKNET_CHAIN = ["SN_GOERLI", "SN_MAIN"];
+
+export const SN_GOERLI = "SN_GOERLI"
+export const SN_MAIN = "SN_MAIN"
+
+export const STARKNET_CHAIN = [SN_GOERLI, SN_MAIN];
 
 export const TRANSFER_KEY = BASE_NAME + "TRANSFER" 
 export const HISTORY_KEY = BASE_NAME + "HISTORY" 
