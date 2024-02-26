@@ -1,6 +1,6 @@
 import { ResolveEVMWalletIcon } from '@/lib/wallet/evm/icon';
 import { reChains, reChainsWallet, reSourceChainKey, reSourceTokenKey } from '@/stores';
-import { formatEther, formatUnits } from 'ethers';
+import { formatEther, formatUnits } from 'viem';
 import { useCallback, useEffect, useState } from 'react';
 import { useRecoilValue } from 'recoil';
 import { useAccount, useBalance, useDisconnect, useNetwork } from 'wagmi';
@@ -32,7 +32,7 @@ export default function useEvmAccountInfo() {
           );
 
           const n = await web3.eth.getTransactionCount(address, "pending");
-          setNonce(Number(formatEther(n)) === 0 ? "1" : formatUnits(n, "wei"));
+          setNonce(Number(formatEther(n)) === 0 ? "1" : formatUnits(n, 1));
 
         } catch (error) {
 

@@ -4,7 +4,7 @@ import { ENTER_NUMBER_RULE, ENTER_NUMBER_RULE2 } from '@/constants/rule';
 import useAccountInfo from '@/hooks/useAccountInfo';
 import { reChains, reGlobalContractTransferDataVerifykey, reSelectRouteGroupKey, reTransferAmount } from '@/stores';
 import { decimalNum } from '@/utils/decimalNum';
-import { formatEther, formatUnits, parseEther, parseUnits } from 'ethers';
+import { formatEther, formatUnits, parseEther, parseUnits } from 'viem';
 import React, { useEffect, useState } from 'react';
 import { useRecoilState, useRecoilValue } from 'recoil';
 
@@ -31,10 +31,10 @@ export default function Amount() {
         if (selectRouteGroupKey?.endpoint && !!value && !!decimals && (parseEther(value || "0") >= parseEther(selectRouteGroupKey?.minAmt || "1")) ) {
 
             const total = parseUnits(value, decimals) + parseUnits( 
-                globalContractTransferDataVerifykey ? "0" : selectRouteGroupKey.vc, "wei")
+                globalContractTransferDataVerifykey ? "0" : selectRouteGroupKey.vc, 1)
 
                 const transferAmount = parseEther(value) - parseUnits(selectRouteGroupKey.withholdingFee || "0", decimals)
-            const receive = transferAmount - transferAmount * parseEther(selectRouteGroupKey.tradeFee) / parseEther("1000000") +  parseUnits( nonce, "wei")
+            const receive = transferAmount - transferAmount * parseEther(selectRouteGroupKey.tradeFee) / parseEther("1000000") +  parseUnits( nonce, 1)
 
             setGroup({
                 total: formatUnits(total, decimals),
@@ -94,7 +94,7 @@ export default function Amount() {
                 <div className="px-4 py-2 w-full text-sm flex justify-between items-center ">
                     <div>TradingFee Code</div>
                     <div>{selectRouteGroupKey?.tradeFee ? formatEther(
-                        parseEther(selectRouteGroupKey.tradeFee) / parseUnits("100", "wei")
+                        parseEther(selectRouteGroupKey.tradeFee) / parseUnits("100", 1)
                     ) + " ‱" : "-"}</div>
                 </div>
                 <div className="px-4 py-2 w-full text-sm flex justify-between items-center ">

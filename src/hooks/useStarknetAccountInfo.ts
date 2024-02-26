@@ -2,7 +2,7 @@ import { ResolveStarknetWalletIcon } from '@/lib/wallet/starknet/icon';
 import { reSourceChainKey } from '@/stores';
 import { reGlobalStarknetWalletId } from '@/stores/wallet';
 import { useAccount, useBalance, useDisconnect, useNetwork } from '@starknet-react/core';
-import { formatUnits } from 'ethers';
+import { formatUnits } from 'viem';
 import { useCallback, useEffect, useState } from 'react';
 import { useRecoilValue } from 'recoil';
 
@@ -26,7 +26,7 @@ export default function useStarknetAccountInfo() {
         async () => {
             if (account) {
                 const n = await account.getNonce();
-                setNonce(formatUnits(n, "wei"));
+                setNonce(String(n));
             }
 
         },

@@ -3,7 +3,7 @@ import { Orbiter_V3_ABI_EVM, Orbiter_V3_ABI_STARKNET } from '@/abi/evm';
 import { reGlobalContractAddresskey, reSelectRouteGroupKey } from '@/stores';
 import ethAddressUtils from '@/utils/ethAddressUtils';
 import { useContractWrite as useStarknetContractWrite } from '@starknet-react/core';
-import { ZeroAddress } from 'ethers';
+import { zeroAddress } from 'viem';
 import { useRecoilValue } from 'recoil';
 import { useContractWrite } from 'wagmi';
 
@@ -15,19 +15,19 @@ export default function useTransfer() {
 
   const { writeAsync: approve } = useContractWrite({
     abi: ERC20_ABI,
-    address: selectRouteGroupKey?.srcToken && (selectRouteGroupKey?.srcToken !== ZeroAddress) ? ethAddressUtils(selectRouteGroupKey?.srcToken || "") : ethAddressUtils(ZeroAddress),
+    address: selectRouteGroupKey?.srcToken && (selectRouteGroupKey?.srcToken !== zeroAddress) ? ethAddressUtils(selectRouteGroupKey?.srcToken || "") : ethAddressUtils(zeroAddress),
     functionName: "approve"
   });
 
   const { writeAsync: contractTransfer } = useContractWrite({
     abi: Orbiter_V3_ABI_EVM,
-    address: contractAddress ? ethAddressUtils(contractAddress) : ethAddressUtils(ZeroAddress),
+    address: contractAddress ? ethAddressUtils(contractAddress) : ethAddressUtils(zeroAddress),
     functionName: "transfer"
   });
 
   const { writeAsync: contractTransferToken } = useContractWrite({
     abi: Orbiter_V3_ABI_EVM,
-    address: contractAddress ? ethAddressUtils(contractAddress) : ethAddressUtils(ZeroAddress),
+    address: contractAddress ? ethAddressUtils(contractAddress) : ethAddressUtils(zeroAddress),
     functionName: "transferToken"
   });
 

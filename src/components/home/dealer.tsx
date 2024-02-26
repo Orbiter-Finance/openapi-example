@@ -5,7 +5,7 @@ import { reGlobalDealerKey } from '@/stores';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '../ui/dialog';
 import { Label } from '../ui/label';
 import { Input } from '../ui/input';
-import { isAddress } from 'ethers';
+import { isAddress } from 'viem';
 import useTotas from '@/hooks/useTotas';
 import { Trash2 } from 'lucide-react';
 import useCleanBridgeTransferState from '@/hooks/useCleanBridgeTransferState';

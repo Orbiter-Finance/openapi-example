@@ -1,7 +1,7 @@
 import { chainsJson } from '@/constants/chainLink';
 import { reChains, reChainsWallet, reSelectRouteGroupKey, reSourceChainKey, reSourceTokenKey } from '@/stores';
 import { combiRaw } from '@/utils/combiRaw';
-import { ZeroAddress, formatEther, formatUnits } from 'ethers';
+import { zeroAddress, formatEther, formatUnits } from 'viem';
 import { useCallback, useEffect, useState } from 'react';
 import { useRecoilValue } from 'recoil';
 import { useAccount } from 'wagmi';
@@ -60,7 +60,7 @@ export default function useAccountInfo() {
     
                         let res: any = "";
     
-                        if (sourceTokenKey.value === ZeroAddress) {
+                        if (sourceTokenKey.value === zeroAddress) {
                             res = await web3.eth.getBalance(EvmAccountInfo.address as string);
                         } else {
     

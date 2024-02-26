@@ -14,7 +14,7 @@ import { reGlobalStarknetWalletDialog } from '@/stores/wallet';
 import ethAddressUtils from '@/utils/ethAddressUtils';
 import { useConnectModal } from '@rainbow-me/rainbowkit';
 import { useProvider, useContractRead as useStarknetContractRead } from '@starknet-react/core';
-import { ZeroAddress, parseEther, parseUnits } from 'ethers';
+import { zeroAddress, parseEther, parseUnits } from 'viem';
 import React, { useCallback, useEffect, useState } from 'react';
 import { useRecoilState, useRecoilValue, useSetRecoilState } from 'recoil';
 import { useContractRead, useContractWrite, useSendTransaction } from 'wagmi';
@@ -60,13 +60,13 @@ export default function Send() {
 
     const { writeAsync } = useContractWrite({
         abi: ERC20_ABI,
-        address: selectRouteGroupKey?.srcToken && (selectRouteGroupKey?.srcToken !== ZeroAddress) ? ethAddressUtils(selectRouteGroupKey?.srcToken || "") : ethAddressUtils(ZeroAddress),
+        address: selectRouteGroupKey?.srcToken && (selectRouteGroupKey?.srcToken !== zeroAddress) ? ethAddressUtils(selectRouteGroupKey?.srcToken || "") : ethAddressUtils(zeroAddress),
         functionName: "transfer"
     });
 
     const result = useContractRead({
         abi: ERC20_ABI,
-        address: !!selectRouteGroupKey?.srcToken && (selectRouteGroupKey?.srcToken !== ZeroAddress) ? ethAddressUtils(selectRouteGroupKey?.srcToken || "") : ethAddressUtils(ZeroAddress),
+        address: !!selectRouteGroupKey?.srcToken && (selectRouteGroupKey?.srcToken !== zeroAddress) ? ethAddressUtils(selectRouteGroupKey?.srcToken || "") : ethAddressUtils(zeroAddress),
         functionName: "allowance",
         args: [EvmAccountInfo.address || "", contractAddress || ""]
     });
@@ -98,7 +98,7 @@ export default function Send() {
             if (!!globalContractTransferDataVerifykey) {
                 str = `c=${selectRouteGroupKey.vc}&t=${addressN}`
             } else {
-                total += parseUnits(selectRouteGroupKey.vc, "wei");
+                total += parseUnits(selectRouteGroupKey.vc, 1);
             }
 
             let hash = "";
@@ -185,7 +185,7 @@ export default function Send() {
                 } else {
 
                     let hash = "";
-                    const total = parseUnits(transferAmount, decimals) + parseUnits(selectRouteGroupKey.vc, "wei");
+                    const total = parseUnits(transferAmount, decimals) + parseUnits(selectRouteGroupKey.vc, 1);
 
                     const group = chains.filter((item) => String(item.chainId).toLocaleLowerCase() === String(selectRouteGroupKey.srcChain).toLocaleLowerCase())[0];
 
