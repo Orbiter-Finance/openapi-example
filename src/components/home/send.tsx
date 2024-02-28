@@ -82,209 +82,205 @@ export default function Send() {
         async () => {
 
 
-            if (selectRouteGroupKey) {
-
-                const isStarknet = STARKNET_CHAIN.includes(selectRouteGroupKey.tgtChain) || STARKNET_CHAIN.includes(selectRouteGroupKey.srcChain);
-
-                const addressN = globalContractTransferToAddresskey || EvmAccountInfo.address || "";
-
-                let total = parseUnits(transferAmount, decimals);
-                let data = ethAddressUtils("0x");
+            if (!selectRouteGroupKey) {
+                return;
+            }
 
 
-                if (!!globalContractTransferDataVerifykey) {
-                    data = ethAddressUtils(Web3.utils.stringToHex(`c=${selectRouteGroupKey.vc}&t=${addressN}`));
-                } else {
-                    total += parseUnits(selectRouteGroupKey.vc, "wei");
+            const isStarknet = STARKNET_CHAIN.includes(selectRouteGroupKey.tgtChain) || STARKNET_CHAIN.includes(selectRouteGroupKey.srcChain);
+
+            const addressN = globalContractTransferToAddresskey || EvmAccountInfo.address || "";
+
+            let total = parseUnits(transferAmount, decimals);
+            let str = "";
+
+
+            if (!!globalContractTransferDataVerifykey) {
+                str = `c=${selectRouteGroupKey.vc}&t=${addressN}`
+            } else {
+                total += parseUnits(selectRouteGroupKey.vc, "wei");
+            }
+
+            let hash = "";
+
+            if (!contractAddress) {
+                totasWarning("Not Contract");
+                return;
+            }
+
+            if (Number(selectRouteGroupKey.srcChain)) {
+
+                if (String(EvmAccountInfo.chain?.id).toLocaleLowerCase() !== String(selectRouteGroupKey.srcChain).toLocaleLowerCase()) {
+
+                    totasWarning("Network mismatch");
+                    if (!isNaN(Number(selectRouteGroupKey.srcChain))) {
+                        switchChain(Number(selectRouteGroupKey.srcChain));
+                    }
                 }
 
-                let hash = "";
+                if (isStarknet || globalContractTransferkey) {
 
-                if (contractAddress) {
-
-                    if (Number(selectRouteGroupKey.srcChain)) {
-
-                        if (String(EvmAccountInfo.chain?.id).toLocaleLowerCase() === String(selectRouteGroupKey.srcChain).toLocaleLowerCase()) {
-
-                            if (isStarknet || globalContractTransferkey) {
-
-                                if (isStarknet) {
-                                    if (!ENTER_STARKNET_ADDRESS.test(addressN)) {
-                                        totasWarning("To Address Not Starknet Address");
-                                        return;
-                                    }
-                                } else {
-                                    if (!ENTER_ETH_ADDRESS.test(addressN)) {
-                                        totasWarning("To Address Not Address");
-                                        return;
-                                    }
-                                }
-
-                                const group = chains.filter((item) => String(item.chainId).toLocaleLowerCase() === String(selectRouteGroupKey.srcChain).toLocaleLowerCase())[0];
-
-                                if (group && (String(selectRouteGroupKey?.srcToken).toLocaleLowerCase() === String(group?.nativeCurrency?.address))) {
-
-                                    const res = await contractTransfer({
-                                        args: [
-                                            selectRouteGroupKey.endpoint,
-                                            data
-                                        ],
-                                        value: total
-                                    });
-
-                                    hash = res?.hash || "";
-
-                                } else {
-
-                                    if (!timeHash && ((result?.data || BigInt(0)) as any) < total) {
-                                        const res = await approve({
-                                            args: [contractAddress, total]
-                                        });
-
-                                        setTimeHash(+new Date());
-
-                                        return;
-                                    }
-
-
-                                    if (result?.error) {
-                                        totasWarning("Allowance Error");
-                                        return;
-                                    }
-
-                                    const res = await contractTransferToken({
-                                        args: [
-                                            selectRouteGroupKey.srcToken,
-                                            selectRouteGroupKey.endpoint,
-                                            total,
-                                            data
-                                        ]
-                                    });
-                                    hash = res?.hash || "";
-
-                                }
-                                setTimeHash(0);
-
-                                setTransferHashKey(hash);
-
-                                totasSuccess("Transfer Hash: " + hash);
-                                setPageStatusKey(HISTORY_KEY);
-
-
-
-                            } else {
-
-                                let hash = "";
-                                const total = parseUnits(transferAmount, decimals) + parseUnits(selectRouteGroupKey.vc, "wei");
-
-                                const group = chains.filter((item) => String(item.chainId).toLocaleLowerCase() === String(selectRouteGroupKey.srcChain).toLocaleLowerCase())[0];
-
-                                if (group && (String(selectRouteGroupKey?.srcToken).toLocaleLowerCase() === String(group?.nativeCurrency?.address))) {
-
-                                    const res = await sendTransactionAsync({
-                                        to: selectRouteGroupKey.endpoint,
-                                        value: total
-                                    });
-
-                                    hash = res?.hash || "";
-
-                                } else {
-
-                                    const res = await writeAsync(
-                                        {
-                                            args: [
-                                                selectRouteGroupKey.endpoint,
-                                                total
-                                            ]
-                                        }
-                                    );
-                                    hash = res?.hash || "";
-
-                                }
-
-                                setTransferHashKey(hash);
-
-                                totasSuccess("Transfer Hash: " + hash);
-                                setPageStatusKey(HISTORY_KEY);
-
-
-                            }
-
-                        } else {
-                            totasWarning("Network mismatch");
-                            if (!isNaN(Number(selectRouteGroupKey.srcChain))) {
-                                switchChain(Number(selectRouteGroupKey.srcChain));
-                            }
+                    if (isStarknet) {
+                        if (!ENTER_STARKNET_ADDRESS.test(addressN)) {
+                            totasWarning("To Address Not Starknet Address");
+                            return;
                         }
                     } else {
-
-                        if (isStarknet) {
-                            const netWork = (StarknetAccountInfo?.chain?.network || "").toLocaleLowerCase();
-                            const isMainnet = netWork.includes("mainnet");
-                            const isgoerli = netWork.includes("goerli");
-                            const chain = selectRouteGroupKey.srcChain || "";
-                            const chainName = chain.toLocaleLowerCase() || "";
-
-                            if ((isMainnet && (chainName === SN_MAIN.toLocaleLowerCase())) || (
-                                isgoerli && (chain.toLocaleLowerCase() === SN_GOERLI.toLocaleLowerCase())
-                            )) {
-
-                                const shortData = data !== "0x" ? shortString.splitLongString(data) : ["0x0"];
-                                const tokenContract = new Contract(STARKNET_ERC20_ABI, selectRouteGroupKey.srcToken, provider);
-                                const starknetTransferContract = new Contract(Orbiter_V3_ABI_STARKNET, contractAddress, provider);
-
-                                const approveTxCall = tokenContract.populate('approve', [
-                                    contractAddress,
-                                    uint256.bnToUint256(total)
-                                ]);
-
-                                const starknetTransferTxCall = starknetTransferContract.populate('transferERC20', [
-                                    selectRouteGroupKey.srcToken,
-                                    selectRouteGroupKey.endpoint,
-                                    uint256.bnToUint256(total),
-                                    // shortData.length,
-                                    shortData
-                                ]);
-
-                                if ((((starknetResult?.data as any)?.remaining?.low || BigInt(0)) as any) < total) {
-
-                                    const res = await StarknetAccountInfo.account?.execute([
-                                        approveTxCall,
-                                        starknetTransferTxCall
-                                    ]);
-
-                                    setTimeHash(+new Date());
-
-                                    return;
-                                } else {
-
-                                    const res = await StarknetAccountInfo.account?.execute([
-                                        starknetTransferTxCall
-                                    ]);
-
-                                    hash = res?.transaction_hash || "";
-
-                                    setTimeHash(0);
-
-                                    setTransferHashKey(hash);
-
-                                    totasSuccess("Transfer Hash: " + hash);
-                                    setPageStatusKey(HISTORY_KEY);
-                                }
-                            } else {
-                                totasWarning("Network mismatch, Please switch Starknet Network");
-                            }
+                        if (!ENTER_ETH_ADDRESS.test(addressN)) {
+                            totasWarning("To Address Not Address");
+                            return;
                         }
                     }
 
+                    const group = chains.filter((item) => String(item.chainId).toLocaleLowerCase() === String(selectRouteGroupKey.srcChain).toLocaleLowerCase())[0];
+
+                    if (group && (String(selectRouteGroupKey?.srcToken).toLocaleLowerCase() === String(group?.nativeCurrency?.address))) {
+
+                        const res = await contractTransfer({
+                            args: [
+                                selectRouteGroupKey.endpoint,
+                                ethAddressUtils(Web3.utils.stringToHex(str))
+                            ],
+                            value: total
+                        });
+
+                        hash = res?.hash || "";
+
+                    } else {
+
+                        if (!timeHash && ((result?.data || BigInt(0)) as any) < total) {
+                            const res = await approve({
+                                args: [contractAddress, total]
+                            });
+
+                            setTimeHash(+new Date());
+
+                            return;
+                        }
+
+
+                        if (result?.error) {
+                            totasWarning("Allowance Error");
+                            return;
+                        }
+
+                        const res = await contractTransferToken({
+                            args: [
+                                selectRouteGroupKey.srcToken,
+                                selectRouteGroupKey.endpoint,
+                                total,
+                                ethAddressUtils(Web3.utils.stringToHex(str))
+                            ]
+                        });
+                        hash = res?.hash || "";
+
+                    }
+                    setTimeHash(0);
+
+                    setTransferHashKey(hash);
+
+                    totasSuccess("Transfer Hash: " + hash);
+                    setPageStatusKey(HISTORY_KEY);
+
                 } else {
-                    totasWarning("Not Contract");
+
+                    let hash = "";
+                    const total = parseUnits(transferAmount, decimals) + parseUnits(selectRouteGroupKey.vc, "wei");
+
+                    const group = chains.filter((item) => String(item.chainId).toLocaleLowerCase() === String(selectRouteGroupKey.srcChain).toLocaleLowerCase())[0];
+
+                    if (group && (String(selectRouteGroupKey?.srcToken).toLocaleLowerCase() === String(group?.nativeCurrency?.address))) {
+
+                        const res = await sendTransactionAsync({
+                            to: selectRouteGroupKey.endpoint,
+                            value: total
+                        });
+
+                        hash = res?.hash || "";
+
+                    } else {
+
+                        const res = await writeAsync(
+                            {
+                                args: [
+                                    selectRouteGroupKey.endpoint,
+                                    total
+                                ]
+                            }
+                        );
+                        hash = res?.hash || "";
+
+                    }
+
+                    setTransferHashKey(hash);
+
+                    totasSuccess("Transfer Hash: " + hash);
+                    setPageStatusKey(HISTORY_KEY);
+
+
                 }
 
+            } else {
+
+                if (isStarknet) {
+                    const netWork = (StarknetAccountInfo?.chain?.network || "").toLocaleLowerCase();
+                    const isMainnet = netWork.includes("mainnet");
+                    const isgoerli = netWork.includes("goerli");
+                    const chain = selectRouteGroupKey.srcChain || "";
+                    const chainName = chain.toLocaleLowerCase() || "";
+
+                    if ((!isMainnet || (chainName !== SN_MAIN.toLocaleLowerCase())) && (
+                        !isgoerli || (chainName !== SN_GOERLI.toLocaleLowerCase())
+                    )) {
+                        totasWarning("Network mismatch, Please switch Starknet Network");
+                    }
+
+                    const shortData = str ? shortString.splitLongString(str).map((item)=> shortString.encodeShortString(item)) : ["0x0"];
+                    const tokenContract = new Contract(STARKNET_ERC20_ABI, selectRouteGroupKey.srcToken, provider);
+                    const starknetTransferContract = new Contract(Orbiter_V3_ABI_STARKNET, contractAddress, provider);
+
+                    const approveTxCall = tokenContract.populate('approve', [
+                        contractAddress,
+                        uint256.bnToUint256(total)
+                    ]);
+
+                    const starknetTransferTxCall = starknetTransferContract.populate('transferERC20', [
+                        selectRouteGroupKey.srcToken,
+                        selectRouteGroupKey.endpoint,
+                        uint256.bnToUint256(total),
+                        shortData
+                    ]);
+
+                    if ((((starknetResult?.data as any)?.remaining?.low || BigInt(0)) as any) < total) {
+
+                        const res = await StarknetAccountInfo.account?.execute([
+                            approveTxCall,
+                            starknetTransferTxCall
+                        ]);
+
+                        setTimeHash(+new Date());
+
+                    } else {
+
+                        const res = await StarknetAccountInfo.account?.execute([
+                            starknetTransferTxCall
+                        ]);
+
+                        hash = res?.transaction_hash || "";
+
+                        setTimeHash(0);
+
+                        setTransferHashKey(hash);
+
+                        totasSuccess("Transfer Hash: " + hash);
+                        setPageStatusKey(HISTORY_KEY);
+                    }
+
+                }
             }
 
         },
-        [selectRouteGroupKey, provider, globalContractTransferToAddresskey, EvmAccountInfo, transferAmount, decimals, globalContractTransferDataVerifykey, contractAddress, globalContractTransferkey, chains, setTransferHashKey, totasSuccess, setPageStatusKey, totasWarning, contractTransfer, timeHash, result, contractTransferToken, approve, sendTransactionAsync, writeAsync, switchChain, StarknetAccountInfo, starknetResult, starknetTransferToken],
+        [selectRouteGroupKey, provider, globalContractTransferToAddresskey, EvmAccountInfo, transferAmount, decimals, globalContractTransferDataVerifykey, contractAddress, globalContractTransferkey, chains, setTransferHashKey, totasSuccess, setPageStatusKey, totasWarning, contractTransfer, timeHash, result, contractTransferToken, approve, sendTransactionAsync, writeAsync, switchChain, StarknetAccountInfo, starknetResult],
     );
 
     useEffect(() => {
@@ -326,13 +322,13 @@ export default function Send() {
                 if (isStarknet ? !!StarknetAccountInfo.address : !!EvmAccountInfo.address) {
                     if ((parseEther(transferAmount || "0") > 0) && !!selectRouteGroupKey?.endpoint) {
                         // if ((Number(balance) >= Number(transferAmount))) {
-                            if ((Number(selectRouteGroupKey.maxAmt) >= Number(transferAmount)) &&
-                                (Number(selectRouteGroupKey.minAmt) <= Number(transferAmount))
-                            ) {
-                                transfer();
-                            } else {
-                                totasWarning("Balance Insufficient");
-                            }
+                        if ((Number(selectRouteGroupKey.maxAmt) >= Number(transferAmount)) &&
+                            (Number(selectRouteGroupKey.minAmt) <= Number(transferAmount))
+                        ) {
+                            transfer();
+                        } else {
+                            totasWarning("Balance Insufficient");
+                        }
                         // } else {
                         //     totasWarning("Amount out of range");
                         // }
@@ -352,7 +348,7 @@ export default function Send() {
                             (Number(selectRouteGroupKey?.maxAmt) >= Number(transferAmount)) ? (
                                 (Number(selectRouteGroupKey?.minAmt) <= Number(transferAmount)) ? (
                                     // ((Number(balance) >= Number(transferAmount))) ? (
-                                        "Send"
+                                    "Send"
                                     // ) : "Balance Insufficient"
                                 ) : `Amount out of range, min: ${selectRouteGroupKey?.minAmt}`
                             ) : `Amount out of range, max: ${selectRouteGroupKey?.maxAmt}`
