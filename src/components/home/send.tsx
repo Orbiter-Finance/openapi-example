@@ -1,5 +1,5 @@
 import { ERC20_ABI, STARKNET_ERC20_ABI } from '@/abi/ERC20';
-import { Orbiter_V3_ABI_STARKNET_GOERLI, Orbiter_V3_ABI_EVM, Orbiter_V3_ABI_STARKNET } from '@/abi/evm';
+import { Orbiter_V3_ABI_STARKNET } from '@/abi/evm';
 import { Button } from '@/components/ui/button';
 import { HISTORY_KEY, SN_GOERLI, SN_MAIN, STARKNET_CHAIN } from '@/constants';
 import { ENTER_ETH_ADDRESS, ENTER_STARKNET_ADDRESS } from '@/constants/rule';
@@ -14,11 +14,11 @@ import { reGlobalStarknetWalletDialog } from '@/stores/wallet';
 import ethAddressUtils from '@/utils/ethAddressUtils';
 import { useConnectModal } from '@rainbow-me/rainbowkit';
 import { useProvider, useContractRead as useStarknetContractRead } from '@starknet-react/core';
-import { ZeroAddress, parseEther, parseUnits } from 'ethers';
 import React, { useCallback, useEffect, useState } from 'react';
 import { useRecoilState, useRecoilValue, useSetRecoilState } from 'recoil';
 import { useContractRead, useContractWrite, useSendTransaction } from 'wagmi';
-import { CallData, Contract, shortString, uint256 } from 'starknet';
+import { parseUnits, zeroAddress, parseEther } from "viem"
+import { Contract, shortString, uint256 } from 'starknet';
 import Web3 from 'web3';
 
 export default function Send() {
@@ -60,13 +60,13 @@ export default function Send() {
 
     const { writeAsync } = useContractWrite({
         abi: ERC20_ABI,
-        address: selectRouteGroupKey?.srcToken && (selectRouteGroupKey?.srcToken !== ZeroAddress) ? ethAddressUtils(selectRouteGroupKey?.srcToken || "") : ethAddressUtils(ZeroAddress),
+        address: selectRouteGroupKey?.srcToken && (selectRouteGroupKey?.srcToken !== zeroAddress) ? ethAddressUtils(selectRouteGroupKey?.srcToken || "") : ethAddressUtils(zeroAddress),
         functionName: "transfer"
     });
 
     const result = useContractRead({
         abi: ERC20_ABI,
-        address: !!selectRouteGroupKey?.srcToken && (selectRouteGroupKey?.srcToken !== ZeroAddress) ? ethAddressUtils(selectRouteGroupKey?.srcToken || "") : ethAddressUtils(ZeroAddress),
+        address: !!selectRouteGroupKey?.srcToken && (selectRouteGroupKey?.srcToken !== zeroAddress) ? ethAddressUtils(selectRouteGroupKey?.srcToken || "") : ethAddressUtils(zeroAddress),
         functionName: "allowance",
         args: [EvmAccountInfo.address || "", contractAddress || ""]
     });
@@ -96,9 +96,9 @@ export default function Send() {
 
 
             if (!!globalContractTransferDataVerifykey) {
-                str = `c=${selectRouteGroupKey.vc}&t=${addressN}`
+                str = `c=${selectRouteGroupKey.vc}&t=${addressN}`;
             } else {
-                total += parseUnits(selectRouteGroupKey.vc, "wei");
+                total += parseUnits(selectRouteGroupKey.vc, 1);
             }
 
             let hash = "";
@@ -185,7 +185,7 @@ export default function Send() {
                 } else {
 
                     let hash = "";
-                    const total = parseUnits(transferAmount, decimals) + parseUnits(selectRouteGroupKey.vc, "wei");
+                    const total = parseUnits(transferAmount, decimals) + parseUnits(selectRouteGroupKey.vc, 1);
 
                     const group = chains.filter((item) => String(item.chainId).toLocaleLowerCase() === String(selectRouteGroupKey.srcChain).toLocaleLowerCase())[0];
 
@@ -235,7 +235,7 @@ export default function Send() {
                         totasWarning("Network mismatch, Please switch Starknet Network");
                     }
 
-                    const shortData = str ? shortString.splitLongString(str).map((item)=> shortString.encodeShortString(item)) : ["0x0"];
+                    const shortData = str ? shortString.splitLongString(str).map((item) => shortString.encodeShortString(item)) : ["0x0"];
                     const tokenContract = new Contract(STARKNET_ERC20_ABI, selectRouteGroupKey.srcToken, provider);
                     const starknetTransferContract = new Contract(Orbiter_V3_ABI_STARKNET, contractAddress, provider);
 
@@ -314,24 +314,24 @@ export default function Send() {
             <Button disabled={(isStarknet ? !!StarknetAccountInfo.address : !!EvmAccountInfo.address) ? !(parseEther(transferAmount || "0") > 0) || !selectRouteGroupKey?.endpoint ||
                 (Number(selectRouteGroupKey?.maxAmt) < Number(transferAmount)) ||
                 (Number(selectRouteGroupKey?.minAmt) > Number(transferAmount))
-                //  ||
-                // (Number(balance) < Number(transferAmount)) 
+                ||
+                (Number(balance) < Number(transferAmount))
                 : false
             } className='w-full' onClick={(event) => {
                 event.stopPropagation();
                 if (isStarknet ? !!StarknetAccountInfo.address : !!EvmAccountInfo.address) {
                     if ((parseEther(transferAmount || "0") > 0) && !!selectRouteGroupKey?.endpoint) {
-                        // if ((Number(balance) >= Number(transferAmount))) {
-                        if ((Number(selectRouteGroupKey.maxAmt) >= Number(transferAmount)) &&
-                            (Number(selectRouteGroupKey.minAmt) <= Number(transferAmount))
-                        ) {
-                            transfer();
+                        if ((Number(balance) >= Number(transferAmount))) {
+                            if ((Number(selectRouteGroupKey.maxAmt) >= Number(transferAmount)) &&
+                                (Number(selectRouteGroupKey.minAmt) <= Number(transferAmount))
+                            ) {
+                                transfer();
+                            } else {
+                                totasWarning("Balance Insufficient");
+                            }
                         } else {
-                            totasWarning("Balance Insufficient");
+                            totasWarning("Amount out of range");
                         }
-                        // } else {
-                        //     totasWarning("Amount out of range");
-                        // }
 
                     }
                 } else {
@@ -347,9 +347,9 @@ export default function Send() {
                         (parseEther(transferAmount || "0") > 0) ? (
                             (Number(selectRouteGroupKey?.maxAmt) >= Number(transferAmount)) ? (
                                 (Number(selectRouteGroupKey?.minAmt) <= Number(transferAmount)) ? (
-                                    // ((Number(balance) >= Number(transferAmount))) ? (
-                                    "Send"
-                                    // ) : "Balance Insufficient"
+                                    ((Number(balance) >= Number(transferAmount))) ? (
+                                        "Send"
+                                    ) : "Balance Insufficient"
                                 ) : `Amount out of range, min: ${selectRouteGroupKey?.minAmt}`
                             ) : `Amount out of range, max: ${selectRouteGroupKey?.maxAmt}`
                         ) : "Enter Amount"
