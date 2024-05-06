@@ -84,7 +84,7 @@ export default function useAccountInfo() {
                 }
             }
         },
-        [EvmAccountInfo, data, chainsWallet, sourceChainKey, sourceTokenKey.value, chains],
+        [EvmAccountInfo.address, chainsWallet, sourceChainKey, sourceTokenKey.value, chains, isStarknet, data],
     );
 
     useEffect(() => {
