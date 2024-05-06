@@ -1,0 +1,89 @@
+diff --git a/dist/esm/hydrate.js b/dist/esm/hydrate.js
+index c0f7c3841b2aca54cd917457acb05dbe9991fd55..53892bf6c139562eb7667b7ebf2b31eb8906aad7 100644
+--- a/dist/esm/hydrate.js
++++ b/dist/esm/hydrate.js
+@@ -3,26 +3,19 @@ import { hydrate } from '@wagmi/core';
+ import { useEffect, useRef } from 'react';
+ export function Hydrate(parameters) {
+     const { children, config, initialState, reconnectOnMount = true } = parameters;
+-    const { onMount } = hydrate(config, {
+-        initialState,
+-        reconnectOnMount,
+-    });
+-    // Hydrate for non-SSR
+-    if (!config._internal.ssr)
+-        onMount();
+-    // Hydrate for SSR
+-    const active = useRef(true);
+-    // biome-ignore lint/nursery/useExhaustiveDependencies:
+-    useEffect(() => {
+-        if (!active.current)
+-            return;
+-        if (!config._internal.ssr)
+-            return;
+-        onMount();
+-        return () => {
+-            active.current = false;
+-        };
+-    }, []);
++    const { onMount } = hydrate(config, { 
++        initialState, 
++        reconnectOnMount, 
++      }) 
++     
++      // Hydrate for non-SSR 
++      if (!config._internal.ssr) onMount() 
++     
++      // biome-ignore lint/nursery/useExhaustiveDependencies: 
++      useEffect(() => { 
++        if (!config._internal.ssr) return 
++        onMount() 
++      }, [onMount]) 
+     return children;
+ }
+ //# sourceMappingURL=hydrate.js.map
+\ No newline at end of file
+diff --git a/src/hydrate.ts b/src/hydrate.ts
+index dd6c8ecbebc796fec21508c2cc61d7b0c5b5a876..56379d71b7ca957220b5189b8064d9d76aac05e0 100644
+--- a/src/hydrate.ts
++++ b/src/hydrate.ts
+@@ -11,26 +11,19 @@ export type HydrateProps = {
+ 
+ export function Hydrate(parameters: React.PropsWithChildren<HydrateProps>) {
+   const { children, config, initialState, reconnectOnMount = true } = parameters
+-
+-  const { onMount } = hydrate(config, {
+-    initialState,
+-    reconnectOnMount,
+-  })
+-
+-  // Hydrate for non-SSR
+-  if (!config._internal.ssr) onMount()
+-
+-  // Hydrate for SSR
+-  const active = useRef(true)
+-  // biome-ignore lint/nursery/useExhaustiveDependencies:
+-  useEffect(() => {
+-    if (!active.current) return
+-    if (!config._internal.ssr) return
+-    onMount()
+-    return () => {
+-      active.current = false
+-    }
+-  }, [])
++  const { onMount } = hydrate(config, { 
++    initialState, 
++    reconnectOnMount, 
++  }) 
++ 
++  // Hydrate for non-SSR 
++  if (!config._internal.ssr) onMount() 
++ 
++  // biome-ignore lint/nursery/useExhaustiveDependencies: 
++  useEffect(() => { 
++    if (!config._internal.ssr) return 
++    onMount() 
++  }, [onMount]) 
+ 
+   return children as ReactElement
+ }

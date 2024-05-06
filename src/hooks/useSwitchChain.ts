@@ -1,10 +1,10 @@
 import { useCallback } from 'react';
 import useTotas from './useTotas';
-import { useSwitchNetwork } from 'wagmi';
+import { useSwitchChain as useSwitchChainA } from 'wagmi';
 
 export default function useSwitchChain() {
 
-  const { switchNetworkAsync } = useSwitchNetwork();
+  const { switchChain: switchChainSync } = useSwitchChainA();
   const { totasError } = useTotas();
 
   const switchChain = useCallback(
@@ -12,9 +12,9 @@ export default function useSwitchChain() {
 
     async (chainId: number) => {
 
-      if(switchNetworkAsync) {
+      if(switchChainSync) {
         try {
-          const res = await switchNetworkAsync(chainId);
+          const res = await switchChainSync({chainId});
           console.log("res", res)
         } catch (error) {
           console.log("error", error)
@@ -28,7 +28,7 @@ export default function useSwitchChain() {
 
 
     },
-    [totasError, switchNetworkAsync],
+    [totasError, switchChainSync],
   );
 
 

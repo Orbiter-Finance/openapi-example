@@ -1,10 +1,8 @@
-import { chainsJson } from '@/constants/chainLink';
 import { reChains, reChainsWallet, reSelectRouteGroupKey, reSourceChainKey, reSourceTokenKey } from '@/stores';
 import { combiRaw } from '@/utils/combiRaw';
-import { ZeroAddress, formatEther, formatUnits } from 'ethers';
+import { ZeroAddress, formatUnits } from 'ethers';
 import { useCallback, useEffect, useState } from 'react';
 import { useRecoilValue } from 'recoil';
-import { useAccount } from 'wagmi';
 import Web3 from 'web3';
 import useEvmAccountInfo from './useEvmAccountInfo';
 import useStarknetAccountInfo from './useStarknetAccountInfo';

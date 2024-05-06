@@ -111,7 +111,7 @@ export default function ConnectWallet() {
                 <div>{decimalNum(EvmAccountInfo?.balance?.data?.formatted, 8)} {EvmAccountInfo?.balance?.data?.symbol}</div>
               </div>
               <div className="flex justify-between item-center mt-1">
-                <div>{EvmAccountInfo.chain?.name}</div>
+                <div>{EvmAccountInfo.chainName}</div>
                 <Badge variant="outline" className='text-blue-500 cursor-pointer' onClick={async (event) => {
                   event.stopPropagation();
                   const res = await EvmAccountInfo.disconnectAsync();

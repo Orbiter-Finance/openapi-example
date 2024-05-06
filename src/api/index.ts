@@ -10,7 +10,6 @@ export interface Result<T> {
     result: T;
 }
 
-
 export interface BridgeCoinPriceData {
     [key: string]: string;
 }
