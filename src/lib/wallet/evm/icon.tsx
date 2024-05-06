@@ -8,7 +8,7 @@ import { LucideProps } from "lucide-react"
 import { JSX } from "react";
 
 export const ResolveEVMWalletIcon = ({ connector }: { connector: string }) => {
-    switch (connector?.toLowerCase()) {
+    switch (connector?.toLocaleLowerCase()) {
         case KnownKonnectors.MetaMask:
             return MetaMaskIcon
         case KnownKonnectors.WalletConnect:

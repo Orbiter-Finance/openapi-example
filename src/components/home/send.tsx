@@ -1,5 +1,5 @@
 import { ERC20_ABI, STARKNET_ERC20_ABI } from '@/abi/ERC20';
-import { Orbiter_V3_ABI_STARKNET } from '@/abi/evm';
+import { Orbiter_V3_ABI_EVM, Orbiter_V3_ABI_STARKNET } from '@/abi/evm';
 import { Button } from '@/components/ui/button';
 import { HISTORY_KEY, SN_GOERLI, SN_MAIN, STARKNET_CHAIN } from '@/constants';
 import { ENTER_ETH_ADDRESS, ENTER_STARKNET_ADDRESS } from '@/constants/rule';
@@ -16,8 +16,8 @@ import { useConnectModal } from '@rainbow-me/rainbowkit';
 import { useProvider, useContractRead as useStarknetContractRead } from '@starknet-react/core';
 import React, { useCallback, useEffect, useState } from 'react';
 import { useRecoilState, useRecoilValue, useSetRecoilState } from 'recoil';
-import { useContractRead, useContractWrite, useSendTransaction } from 'wagmi';
-import { parseUnits, zeroAddress, parseEther } from "viem"
+import { useReadContract, useSendTransaction, useWriteContract } from 'wagmi';
+import { parseUnits, zeroAddress, parseEther } from "viem";
 import { Contract, shortString, uint256 } from 'starknet';
 import Web3 from 'web3';
 
@@ -45,7 +45,6 @@ export default function Send() {
     const [timeHash, setTimeHash] = useState(0);
 
     const [decimals, setDecimals] = useState(0);
-    const { approve, contractTransfer, contractTransferToken, starknetApproveAndTransferToken, starknetTransferToken } = useTransfer();
     const [contractAddress, setContractAddress] = useRecoilState(reGlobalContractAddresskey);
     const { switchChain } = useSwitchChain();
 
@@ -58,13 +57,9 @@ export default function Send() {
 
     const setGlobalStarknetWalletDialog = useSetRecoilState(reGlobalStarknetWalletDialog);
 
-    const { writeAsync } = useContractWrite({
-        abi: ERC20_ABI,
-        address: selectRouteGroupKey?.srcToken && (selectRouteGroupKey?.srcToken !== zeroAddress) ? ethAddressUtils(selectRouteGroupKey?.srcToken || "") : ethAddressUtils(zeroAddress),
-        functionName: "transfer"
-    });
+    const { writeContractAsync } = useWriteContract();
 
-    const result = useContractRead({
+    const result = useReadContract({
         abi: ERC20_ABI,
         address: !!selectRouteGroupKey?.srcToken && (selectRouteGroupKey?.srcToken !== zeroAddress) ? ethAddressUtils(selectRouteGroupKey?.srcToken || "") : ethAddressUtils(zeroAddress),
         functionName: "allowance",
@@ -98,7 +93,7 @@ export default function Send() {
             if (!!globalContractTransferDataVerifykey) {
                 str = `c=${selectRouteGroupKey.vc}&t=${addressN}`;
             } else {
-                total += parseUnits(selectRouteGroupKey.vc, 1);
+                total += parseUnits(selectRouteGroupKey.vc, 0);
             }
 
             let hash = "";
@@ -110,7 +105,7 @@ export default function Send() {
 
             if (Number(selectRouteGroupKey.srcChain)) {
 
-                if (String(EvmAccountInfo.chain?.id).toLocaleLowerCase() !== String(selectRouteGroupKey.srcChain).toLocaleLowerCase()) {
+                if (String(EvmAccountInfo.chainId).toLocaleLowerCase() !== String(selectRouteGroupKey.srcChain).toLocaleLowerCase()) {
 
                     totasWarning("Network mismatch");
                     if (!isNaN(Number(selectRouteGroupKey.srcChain))) {
@@ -136,7 +131,10 @@ export default function Send() {
 
                     if (group && (String(selectRouteGroupKey?.srcToken).toLocaleLowerCase() === String(group?.nativeCurrency?.address))) {
 
-                        const res = await contractTransfer({
+                        hash = await writeContractAsync({
+                            abi: Orbiter_V3_ABI_EVM,
+                            address: ethAddressUtils(contractAddress),
+                            functionName: "transfer",
                             args: [
                                 selectRouteGroupKey.endpoint,
                                 ethAddressUtils(Web3.utils.stringToHex(str))
@@ -144,13 +142,15 @@ export default function Send() {
                             value: total
                         });
 
-                        hash = res?.hash || "";
-
                     } else {
 
                         if (!timeHash && ((result?.data || BigInt(0)) as any) < total) {
-                            const res = await approve({
+                            const res = await writeContractAsync({
+                                abi: ERC20_ABI,
+                                address: ethAddressUtils(selectRouteGroupKey.srcToken),
+                                functionName: "approve",
                                 args: [contractAddress, total]
+
                             });
 
                             setTimeHash(+new Date());
@@ -164,7 +164,10 @@ export default function Send() {
                             return;
                         }
 
-                        const res = await contractTransferToken({
+                        hash = await writeContractAsync({
+                            abi: Orbiter_V3_ABI_EVM,
+                            address: ethAddressUtils(contractAddress),
+                            functionName: "transferToken",
                             args: [
                                 selectRouteGroupKey.srcToken,
                                 selectRouteGroupKey.endpoint,
@@ -172,7 +175,6 @@ export default function Send() {
                                 ethAddressUtils(Web3.utils.stringToHex(str))
                             ]
                         });
-                        hash = res?.hash || "";
 
                     }
                     setTimeHash(0);
@@ -185,38 +187,36 @@ export default function Send() {
                 } else {
 
                     let hash = "";
-                    const total = parseUnits(transferAmount, decimals) + parseUnits(selectRouteGroupKey.vc, 1);
+                    const total = parseUnits(transferAmount, decimals) + parseUnits(selectRouteGroupKey.vc, 0);
 
                     const group = chains.filter((item) => String(item.chainId).toLocaleLowerCase() === String(selectRouteGroupKey.srcChain).toLocaleLowerCase())[0];
 
                     if (group && (String(selectRouteGroupKey?.srcToken).toLocaleLowerCase() === String(group?.nativeCurrency?.address))) {
 
-                        const res = await sendTransactionAsync({
-                            to: selectRouteGroupKey.endpoint,
+                        hash = await sendTransactionAsync({
+                            to: ethAddressUtils(selectRouteGroupKey.endpoint),
                             value: total
                         });
 
-                        hash = res?.hash || "";
-
                     } else {
 
-                        const res = await writeAsync(
+                        hash = await writeContractAsync(
                             {
+                                abi: ERC20_ABI,
+                                address: ethAddressUtils(selectRouteGroupKey.srcToken),
+                                functionName: "transfer",
                                 args: [
                                     selectRouteGroupKey.endpoint,
                                     total
                                 ]
                             }
                         );
-                        hash = res?.hash || "";
-
                     }
 
                     setTransferHashKey(hash);
 
                     totasSuccess("Transfer Hash: " + hash);
                     setPageStatusKey(HISTORY_KEY);
-
 
                 }
 
@@ -280,7 +280,7 @@ export default function Send() {
             }
 
         },
-        [selectRouteGroupKey, provider, globalContractTransferToAddresskey, EvmAccountInfo, transferAmount, decimals, globalContractTransferDataVerifykey, contractAddress, globalContractTransferkey, chains, setTransferHashKey, totasSuccess, setPageStatusKey, totasWarning, contractTransfer, timeHash, result, contractTransferToken, approve, sendTransactionAsync, writeAsync, switchChain, StarknetAccountInfo, starknetResult],
+        [selectRouteGroupKey, provider, writeContractAsync, globalContractTransferToAddresskey, EvmAccountInfo, transferAmount, decimals, globalContractTransferDataVerifykey, contractAddress, globalContractTransferkey, chains, setTransferHashKey, totasSuccess, setPageStatusKey, totasWarning, timeHash, result, sendTransactionAsync, switchChain, StarknetAccountInfo, starknetResult],
     );
 
     useEffect(() => {
