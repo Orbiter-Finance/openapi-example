@@ -34,7 +34,7 @@ export default function Amount() {
                 globalContractTransferDataVerifykey ? "0" : selectRouteGroupKey.vc, "wei")
 
                 const transferAmount = parseEther(value) - parseUnits(selectRouteGroupKey.withholdingFee || "0", decimals)
-            const receive = transferAmount - transferAmount * parseEther(selectRouteGroupKey.tradeFee) / parseEther("1000000") +  parseUnits( nonce, "wei")
+            const receive = transferAmount - transferAmount * parseEther(selectRouteGroupKey.tradeFee) +  parseUnits( nonce, "wei")
 
             setGroup({
                 total: formatUnits(total, decimals),
@@ -92,10 +92,8 @@ export default function Amount() {
                     <div>{selectRouteGroupKey?.vc || "-"}</div>
                 </div>
                 <div className="px-4 py-2 w-full text-sm flex justify-between items-center ">
-                    <div>TradingFee Code</div>
-                    <div>{selectRouteGroupKey?.tradeFee ? formatEther(
-                        parseEther(selectRouteGroupKey.tradeFee) / parseUnits("100", "wei")
-                    ) + " ‱" : "-"}</div>
+                    <div>TradingFee (%)</div>
+                    <div>{selectRouteGroupKey?.tradeFee ? (selectRouteGroupKey.tradeFee || "0") + " %" : "-"}</div>
                 </div>
                 <div className="px-4 py-2 w-full text-sm flex justify-between items-center ">
                     <div>Total Send</div>
