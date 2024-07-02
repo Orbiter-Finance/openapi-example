@@ -35,7 +35,7 @@ export async function fetchChains(): Promise<any> {
 
 export async function fetchRoutes(params: any): Promise<IRouters[]> {
     try {
-        const res: Result<IRouters[]> = await axiosService.get(`${BASE_URL}/sdk/routers` + objToParams(params), {
+        const res: Result<IRouters[]> = await axiosService.get(`${BASE_URL}/sdk/routers/v2` + objToParams(params), {
 
         }).then((res: { data: any; }) => res.data);
         if (res.status === 'success') {
